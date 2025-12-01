@@ -44,6 +44,7 @@ export default function RegisterPage() {
 
     try {
       const response = await apiRegister({ email, password, full_name: fullName });
+      console.log('Registration successful, user:', response.user);
       login(response.access_token || 'auth_token');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');

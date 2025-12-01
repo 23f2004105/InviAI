@@ -64,6 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('auth_token', newToken);
     setToken(newToken);
     setIsAuthenticated(true);
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('auth-changed'));
     router.push('/dashboard');
   }, [router]);
 

@@ -50,7 +50,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  // Initial data fetch
+  // Initial data fetch and refetch when auth token changes
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
@@ -58,7 +58,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setIsLoading(false);
     };
 
-    initializeData();
+    // Check if we're in the browser and have access to localStorage
+    if (typeof window !== 'undefined') {
+      initializeData();
+      
+      // Listen for auth changes to refetch user data
+      const handleAuthChange = () => {
+        console.log('Auth changed, refetching user data...');
+        initializeData();
+      };
+      
+      window.addEventListener('auth-changed', handleAuthChange);
+      return () => window.removeEventListener('auth-changed', handleAuthChange);
+    }
   }, []);
 
   // Refresh functions

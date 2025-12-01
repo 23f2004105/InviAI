@@ -21,6 +21,7 @@ export default function LoginPage() {
 
     try {
       const response = await apiLogin({ email, password });
+      console.log('Login successful, user:', response.user);
       login(response.access_token || 'auth_token');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
