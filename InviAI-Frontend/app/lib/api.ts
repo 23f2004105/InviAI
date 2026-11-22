@@ -70,8 +70,20 @@ async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    const error = await response.json().catch(() => null);
+    // FastAPI sends a string, or a list of {msg} objects for validation errors (422)
+    const detail =
+      typeof error?.detail === 'string'
+        ? error.detail
+        : Array.isArray(error?.detail)
+          ? error.detail.map((d: { msg?: string }) => d.msg?.replace(/^Value error, /, '')).filter(Boolean).join('. ') || null
+          : null;
+    if (detail) throw new Error(detail);
+    if (response.status >= 500) {
+      // Also what the Next.js proxy returns when the backend is down or asleep
+      throw new Error('The InviAI server is unavailable right now. Please try again in a moment.');
+    }
+    throw new Error(`Request failed (HTTP ${response.status})`);
   }
 
   return response.json();
@@ -214,7 +226,9 @@ export const getPortfolios = async (): Promise<Portfolio[]> => {
     return mockPortfolios;
   }
 
-  const backendPortfolios = await apiRequest<BackendPortfolio[]>('/api/portfolios');
+  // Trailing slash matters: without it FastAPI redirects to its own host,
+  // which breaks behind the Next.js proxy (cross-origin redirect).
+  const backendPortfolios = await apiRequest<BackendPortfolio[]>('/api/portfolios/');
   return Promise.all(
     backendPortfolios.map(async (p) => {
       const assets = await apiRequest<BackendAsset[]>(`/api/portfolios/${p.id}/assets`);

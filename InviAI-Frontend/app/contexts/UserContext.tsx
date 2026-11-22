@@ -60,6 +60,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const initializeData = async () => {
       setIsLoading(true);
       setIsDemo(isDemoSession());
+      // The signed-in user changed: never carry over the previous user's
+      // (or demo mode's) portfolios if the new fetch fails
+      setPortfolios([]);
       const errors = await Promise.all([fetchUser(), fetchPortfolios()]);
       setError(errors.find(Boolean) ?? null);
       setIsLoading(false);
