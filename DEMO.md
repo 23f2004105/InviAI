@@ -54,4 +54,5 @@ Two portfolios: **Long Term Wealth** (Reliance, TCS, HDFC Bank, Infosys, ITC) an
 - Portfolio value, cost basis, unrealised P&L and weights recalculated on every change.
 - AI investment advisor (Google Gemini) personalised with the investor profile, with an offline fallback.
 - Read-only by design: InviAI never places trades.
-- Next steps: price history from stored snapshots, rebalancing suggestions, broker import, Alembic migrations, bcrypt password hashing.
+- Security: bcrypt password hashing, rate-limited login, database migrations with Alembic.
+- Next steps: price history from stored snapshots, rebalancing suggestions, broker import.

@@ -1,144 +1,62 @@
-# InviAI - Intelligent Portfolio Planning & Financial Optimization Platform
+# InviAI
 
-InviAI is a secure, scalable, and modular web application that helps users build, manage, and optimize investment portfolios using AI-driven insights.
+Portfolio tracking and planning for the Indian market (NSE/BSE, ₹). Users create portfolios, add holdings, see live prices, dashboards and reports, and chat with a Gemini-powered investment advisor. InviAI is read-only by design: it never places trades.
 
-## 🏗️ Architecture Overview
+## Stack
 
-- **Frontend**: Next.js with TypeScript and Tailwind CSS
-- **Backend**: Python with FastAPI
-- **Database**: PostgreSQL
-- **Authentication**: Supabase
-- **AI/ML**: pandas, scikit-learn
-- **Data Source**: Yahoo Finance (Free - Indian & Global Markets)
-- **Containerization**: Docker & Docker Compose
-
-## 📁 Project Structure
+| Part | Tech |
+|---|---|
+| Frontend | Next.js 15 (App Router), React 19, TypeScript, Tailwind, Recharts |
+| Backend | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL |
+| Auth | Email + password, bcrypt hashes, JWT (7 days), rate-limited login |
+| Market data | Yahoo Finance (`yfinance`), cached 2 min, sample prices as fallback |
+| AI advisor | Google Gemini (`gemini-2.5-flash`), offline fallback |
+| Hosting | Vercel (frontend) + Render (backend) + Neon (Postgres), see [DEPLOYMENT.md](DEPLOYMENT.md) |
 
 ```
-InviAI Full/
-├── backend/              # FastAPI backend application
-├── frontend/             # Next.js frontend application
-├── docker-compose.yml    # Docker orchestration
-├── .env                  # Environment variables (DO NOT COMMIT)
-├── .gitignore           # Git ignore rules
-└── README.md            # This file
+backend/            FastAPI app (app/), Alembic migrations (alembic/), tests (tests/)
+InviAI-Frontend/    Next.js app
+docker-compose.yml  Local Postgres + backend + frontend
+render.yaml         Render blueprint for the backend
 ```
 
-## 🚀 Getting Started
+## Run locally
 
-### Prerequisites
+Needs Python 3.11, Node 20 and a local PostgreSQL.
 
-- Docker and Docker Compose installed
-- Node.js 18+ (for local development)
-- Python 3.10+ (for local development)
-
-### Environment Setup
-
-1. **Copy and configure the `.env` file:**
-   - Open `.env` in the root directory
-   - Fill in your actual credentials:
-     - PostgreSQL credentials
-     - Supabase URL and keys (from https://app.supabase.com)
-     - Alpha Vantage API key (from https://www.alphavantage.co)
-     - Generate a strong SECRET_KEY
-
-2. **Get API Keys:**
-   - **Supabase**: Sign up at https://supabase.com and create a project
-   - **Yahoo Finance**: No API key needed - completely free!
-
-### Running the Application
-
+**Backend** (PowerShell, from `backend/`):
 ```powershell
-# Start all services (database, backend, frontend)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-
-# Rebuild and start (after code changes)
-docker-compose up -d --build
-```
-
-### Service URLs
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **PostgreSQL**: localhost:5432
-
-## 🔒 Security Features
-
-- Environment-based configuration (no hardcoded secrets)
-- Supabase authentication with JWT tokens
-- CORS middleware protection
-- PostgreSQL with secure connections
-- Input validation on all API endpoints
-- SQL injection prevention via SQLAlchemy ORM
-
-## 🧪 Development
-
-### Backend Development
-
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
+python -m venv venv; .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+copy .env.example .env      # then fill in DATABASE_URL and JWT_SECRET_KEY
 uvicorn app.main:app --reload
 ```
+Database migrations run automatically on startup. API docs: http://localhost:8000/docs
 
-### Frontend Development
-
+**Frontend** (from `InviAI-Frontend/`):
 ```powershell
-cd frontend
 npm install
 npm run dev
 ```
+Open http://localhost:3000. The login page also has a demo mode that shows sample data without an account.
 
-## 📊 Core Features (Planned)
+**Or with Docker:** copy `.env.example` to `.env`, then `docker-compose up --build`.
 
-- ✅ User authentication and authorization
-- ✅ Portfolio creation and management
-- ✅ Real-time market data integration
-- ✅ AI-powered portfolio optimization
-- ✅ Risk analysis and diversification insights
-- ✅ Historical performance tracking
-- ✅ Interactive charts and visualizations
+## Tests
 
-## 🛠️ Technology Stack Details
+```powershell
+cd backend; .\venv\Scripts\python -m pytest tests/      # in-memory SQLite, no network
+python scripts/check_market_data.py                     # live Yahoo Finance check
+cd ..\InviAI-Frontend; npm run build                    # type-check + build
+```
 
-### Backend
-- **FastAPI**: Modern, fast web framework for Python
-- **SQLAlchemy**: SQL toolkit and ORM
-- **Supabase**: Authentication and real-time database
-- **yfinance**: Market data (Indian & Global stocks)
-- **pandas**: Data manipulation and analysis
-- **scikit-learn**: Machine learning algorithms
+## Database changes
 
-### Frontend
-- **Next.js**: React framework with SSR/SSG
-- **TypeScript**: Type-safe JavaScript
-- **Tailwind CSS**: Utility-first CSS framework
-- **Recharts**: Composable charting library
-- **Zustand/Context**: State management
+Edit `backend/app/models.py`, then from `backend/`:
+```powershell
+alembic revision --autogenerate -m "describe the change"
+alembic upgrade head
+```
+Commit the new file in `backend/alembic/versions/`.
 
-### Infrastructure
-- **Docker**: Containerization
-- **PostgreSQL**: Relational database
-- **Nginx**: (Future) Reverse proxy and load balancer
-
-## 📝 License
-
-Proprietary - All rights reserved
-
-## 👥 Contributing
-
-This is a private project. For questions or contributions, please contact the development team.
-
----
-
-**Status**: 🚧 Under Development
-**Version**: 0.1.0 (Alpha)
+More: [DEMO.md](DEMO.md) (presentation walkthrough), [INDIAN_MARKET_GUIDE.md](INDIAN_MARKET_GUIDE.md), [CLAUDE.md](CLAUDE.md) (architecture notes).

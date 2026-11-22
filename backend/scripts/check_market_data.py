@@ -6,8 +6,8 @@ Run this to verify market data service is working
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Make the backend package importable (run: python scripts/check_market_data.py)
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.services.market_data import (
     market_data_service,
@@ -84,15 +84,18 @@ def test_historical_data():
     symbol = "RELIANCE.NS"
     print(f"🔍 Fetching 1-month history for {symbol}...")
     
-    df = market_data_service.get_historical_data(symbol, period="1mo", interval="1d")
-    
-    if df is not None:
-        print(f"   ✅ Retrieved {len(df)} days of data")
-        print(f"   📅 Date Range: {df['Date'].min()} to {df['Date'].max()}")
+    rows = market_data_service.get_stock_history(symbol, period="1mo", interval="1d")
+
+    if rows:
+        # Yahoo rows use 'Close'/'Date', mock rows use 'close'/'date'
+        closes = [r.get('Close', r.get('close')) for r in rows]
+        date_of = lambda r: str(r.get('Date', r.get('date')))[:10]
+        print(f"   ✅ Retrieved {len(rows)} days of data")
+        print(f"   📅 Date Range: {date_of(rows[0])} to {date_of(rows[-1])}")
         print(f"   💰 Closing Prices:")
-        print(f"      Latest: ₹{df['Close'].iloc[-1]:,.2f}")
-        print(f"      Highest: ₹{df['Close'].max():,.2f}")
-        print(f"      Lowest: ₹{df['Close'].min():,.2f}")
+        print(f"      Latest: ₹{closes[-1]:,.2f}")
+        print(f"      Highest: ₹{max(closes):,.2f}")
+        print(f"      Lowest: ₹{min(closes):,.2f}")
     else:
         print("   ❌ Failed to fetch historical data")
     print()
@@ -120,30 +123,6 @@ def test_stock_info():
         print(f"   💵 Dividend Yield: {info.get('dividend_yield', 0) * 100:.2f}%" if info.get('dividend_yield') else "   💵 Dividend Yield: N/A")
     else:
         print("   ❌ Failed to fetch stock info")
-    print()
-
-
-def test_returns_calculation():
-    """Test calculating returns"""
-    print("\n" + "=" * 60)
-    print("📊 Returns Calculation")
-    print("=" * 60 + "\n")
-    
-    symbol = "INFY.NS"
-    print(f"🔍 Calculating 1-year returns for {symbol}...")
-    
-    returns = market_data_service.calculate_returns(symbol)
-    
-    if returns:
-        print(f"   ✅ Period: {returns['days']} days")
-        print(f"   💰 Start Price: ₹{returns['start_price']:,.2f}")
-        print(f"   💰 End Price: ₹{returns['end_price']:,.2f}")
-        print(f"   📈 Total Return: {returns['total_return_percent']:.2f}%")
-        print(f"   📊 Annualized Volatility: {returns['annualized_volatility_percent']:.2f}%")
-        print(f"   📈 Max Price: ₹{returns['max_price']:,.2f}")
-        print(f"   📉 Min Price: ₹{returns['min_price']:,.2f}")
-    else:
-        print("   ❌ Failed to calculate returns")
     print()
 
 
@@ -175,7 +154,6 @@ def main():
         test_indices()
         test_historical_data()
         test_stock_info()
-        test_returns_calculation()
         
         print("\n" + "=" * 60)
         print("✅ All Tests Complete!")

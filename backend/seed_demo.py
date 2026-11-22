@@ -7,12 +7,14 @@ account's existing portfolios are deleted and recreated.
 
 Usage (backend must be running):
     venv\\Scripts\\python seed_demo.py
+    INVIAI_API_URL=https://<service>.onrender.com python seed_demo.py   # deployed backend
 """
 
+import os
 import sys
 import requests
 
-API = "http://localhost:8000"
+API = os.getenv("INVIAI_API_URL", "http://localhost:8000").rstrip("/")
 DEMO_EMAIL = "demo@inviai.app"
 DEMO_PASSWORD = "Demo@2026"
 DEMO_NAME = "Aarav Mehta"
