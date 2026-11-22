@@ -4,8 +4,8 @@ SQLAlchemy setup with connection pooling and session management
 """
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy.pool import QueuePool
 import os
 import logging
@@ -93,8 +93,12 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.error(f"Database session error: {e}")
+        db.rollback()
+        raise
+    except Exception:
+        # HTTP errors, rate limits etc. - not a DB problem, just don't leave work half-done
         db.rollback()
         raise
     finally:

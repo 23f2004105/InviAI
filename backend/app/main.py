@@ -10,10 +10,15 @@ from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 import logging
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timezone
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Import database initialization
 from app.database import engine, Base
+from app.rate_limit import limiter
 
 # Import local auth model to ensure table is created
 from app.routers.auth_local import LocalUser
@@ -77,20 +82,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # ========================================
 # CORS Configuration
 # ========================================
 # Allow frontend to communicate with backend
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+# Comma-separated; in production set this to the Vercel URL(s)
+cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -141,7 +149,7 @@ async def root():
         "name": "InviAI API",
         "version": "0.1.0",
         "status": "operational",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "docs": "/docs",
         "health": "/health"
     }
@@ -166,7 +174,7 @@ async def health_check():
     
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "services": {
             "api": "healthy",
             "database": db_status
@@ -195,12 +203,12 @@ async def log_requests(request: Request, call_next):
     """
     Log all incoming requests
     """
-    start_time = datetime.utcnow()
+    start_time = time.perf_counter()
     logger.info(f"Request: {request.method} {request.url.path}")
-    
+
     response = await call_next(request)
-    
-    process_time = (datetime.utcnow() - start_time).total_seconds()
+
+    process_time = time.perf_counter() - start_time
     logger.info(f"Response: {response.status_code} | Time: {process_time:.3f}s")
     
     # Add custom headers

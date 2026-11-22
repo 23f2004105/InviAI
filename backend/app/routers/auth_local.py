@@ -3,19 +3,21 @@ Local Authentication Router - No Supabase Required
 Handles user registration, login, logout with JWT tokens and PostgreSQL
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
-import secrets
+import hmac
 from jose import JWTError, jwt
+import bcrypt
 import os
 
 from app.database import get_db
 from app.models import LocalUser
-from app.schemas import UserRegister, UserLogin, UserResponse, TokenResponse
+from app.rate_limit import limiter, AUTH_RATE_LIMIT
+from app.schemas import UserRegister, UserLogin
 
 logger = logging.getLogger(__name__)
 
@@ -23,34 +25,48 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ========================================
-# Password Hashing Configuration (using hashlib - no bcrypt issues)
+# Password Hashing (bcrypt)
 # ========================================
+# Older accounts were stored as "<salt>$<sha256 hex>". Those still verify, and
+# are re-hashed with bcrypt on the next successful login (see needs_rehash).
 
-def hash_password(password: str, salt: str = None) -> str:
-    """Hash a password using SHA-256 with salt"""
-    if salt is None:
-        salt = secrets.token_hex(16)
-    pwd_hash = hashlib.sha256((salt + password).encode()).hexdigest()
-    return f"{salt}${pwd_hash}"
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    try:
-        salt, stored_hash = hashed_password.split('$')
-        new_hash = hashlib.sha256((salt + plain_password).encode()).hexdigest()
-        return new_hash == stored_hash
-    except Exception:
-        return False
+def _pw_bytes(password: str) -> bytes:
+    # bcrypt only uses the first 72 bytes and bcrypt>=5 raises beyond that
+    return password.encode("utf-8")[:72]
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return hash_password(password)
+    """Hash a password with bcrypt"""
+    return bcrypt.hashpw(_pw_bytes(password), bcrypt.gensalt()).decode("utf-8")
+
+def _is_legacy_hash(hashed_password: str) -> bool:
+    return not hashed_password.startswith("$2")
+
+def needs_rehash(hashed_password: str) -> bool:
+    """True if the stored hash uses the old SHA-256 scheme"""
+    return _is_legacy_hash(hashed_password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a bcrypt or legacy SHA-256 hash"""
+    try:
+        if _is_legacy_hash(hashed_password):
+            salt, stored_hash = hashed_password.split('$')
+            new_hash = hashlib.sha256((salt + plain_password).encode()).hexdigest()
+            return hmac.compare_digest(new_hash, stored_hash)
+        return bcrypt.checkpw(_pw_bytes(plain_password), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
 
 # ========================================
 # JWT Configuration
 # ========================================
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "inviai-super-secret-key-change-in-production-2024")
+_DEV_FALLBACK_SECRET = "inviai-dev-only-secret-do-not-use-in-production"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    if os.getenv("ENVIRONMENT", "development") != "development":
+        raise RuntimeError("JWT_SECRET_KEY must be set when ENVIRONMENT is not 'development'")
+    logger.warning("⚠️ JWT_SECRET_KEY not set - using an insecure development secret")
+    SECRET_KEY = _DEV_FALLBACK_SECRET
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
@@ -63,9 +79,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """Create a JWT access token"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -138,7 +154,8 @@ async def get_current_user(
 # ========================================
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit(AUTH_RATE_LIMIT)
+async def register(request: Request, user_data: UserRegister, db: Session = Depends(get_db)):
     """
     Register a new user with email and password
     """
@@ -188,7 +205,8 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit(AUTH_RATE_LIMIT)
+async def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Login with email and password
     """
@@ -215,8 +233,13 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             detail="User account is inactive"
         )
     
+    # Upgrade old SHA-256 hashes to bcrypt now that we know the password
+    if needs_rehash(user.password_hash):
+        user.password_hash = get_password_hash(credentials.password)
+        logger.info(f"Upgraded password hash to bcrypt for user id={user.id}")
+
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
     
     # Create access token
