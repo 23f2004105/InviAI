@@ -1,6 +1,6 @@
 """
 Market Data Service - Multi-Provider Integration
-Supports: Groww API (primary) and Mock Data (fallback)
+Supports: Yahoo Finance (primary) and Mock Data (fallback)
 """
 
 from typing import Optional, Dict, List, Union
@@ -10,7 +10,6 @@ import random
 import os
 import time
 import threading
-import asyncio
 
 # Optional imports - graceful fallback if not installed
 try:
@@ -21,14 +20,6 @@ except ImportError:
     YFINANCE_AVAILABLE = False
     yf = None
     pd = None
-
-try:
-    from growwapi import GrowwAPI, GrowwFeed
-    GROWW_AVAILABLE = True
-except ImportError:
-    GROWW_AVAILABLE = False
-    GrowwAPI = None
-    GrowwFeed = None
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +68,7 @@ MOCK_INDICES = {
 class MarketDataService:
     """
     Service for fetching market data
-    Priority: Groww API > Yahoo Finance > Mock Data
+    Priority: Yahoo Finance > Mock Data
     
     READ-ONLY: This service only fetches market data.
     No order placement or trading capabilities.
@@ -93,81 +84,13 @@ class MarketDataService:
         """Initialize market data service"""
         self._cache: Dict[str, tuple] = {}
         self._cache_lock = threading.Lock()
-        self.groww_api_key = os.getenv("GROWW_API_KEY")
-        self.groww_secret = os.getenv("GROWW_SECRET")
         self.use_mock = os.getenv("USE_MOCK_DATA", "true").lower() == "true"
-        
-        # Groww API clients (read-only)
-        self._groww_api = None
-        self._groww_feed = None
-        self._groww_initialized = False
-        
-        # Try to initialize Groww if credentials are available
-        if GROWW_AVAILABLE and self.groww_api_key and self.groww_secret:
-            try:
-                self._init_groww()
-                logger.info("✅ Market Data Service initialized with Groww API (READ-ONLY)")
-            except Exception as e:
-                logger.warning(f"⚠️ Groww API init failed: {e}. Using fallback.")
-                self._groww_initialized = False
-        elif self.groww_api_key and not GROWW_AVAILABLE:
-            logger.warning("⚠️ Groww API key set but 'growwapi' package not installed. Run: pip install growwapi")
+
+        if YFINANCE_AVAILABLE:
+            logger.info("📊 Market Data Service initialized with Yahoo Finance (mock fallback)")
         else:
-            logger.info("📊 Market Data Service initialized with Mock Data (set GROWW_API_KEY and GROWW_SECRET for live data)")
-    
-    def _init_groww(self):
-        """Initialize Groww API clients (READ-ONLY mode)"""
-        if not GROWW_AVAILABLE:
-            return
-        
-        try:
-            # Groww provides a JWT token directly as the API key
-            # No need to call get_access_token() - use the token directly
-            access_token = self.groww_api_key
-            logger.info("Using Groww API token directly")
-            
-            # Initialize API client (for holdings, orders - READ ONLY)
-            self._groww_api = GrowwAPI(access_token)
-            
-            # Initialize Feed client in a separate thread to avoid event loop conflict
-            self._feed_thread = None
-            self._feed_loop = None
-            try:
-                self._init_groww_feed_threaded()
-            except Exception as feed_err:
-                logger.warning(f"GrowwFeed init failed: {feed_err}. Will use API only.")
-                self._groww_feed = None
-            
-            self._groww_initialized = True
-            logger.info("✅ Groww API connected (READ-ONLY mode - no trading)")
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize Groww API: {e}")
-            self._groww_initialized = False
-            raise
-    
-    def _init_groww_feed_threaded(self):
-        """Initialize GrowwFeed in a separate thread with its own event loop"""
-        def run_feed():
-            try:
-                # Create a new event loop for this thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                self._feed_loop = loop
-                
-                # Initialize GrowwFeed
-                self._groww_feed = GrowwFeed(self._groww_api)
-                logger.info("✅ GrowwFeed initialized in background thread")
-                
-            except Exception as e:
-                logger.warning(f"GrowwFeed thread init failed: {e}")
-                self._groww_feed = None
-        
-        # Start the feed in a daemon thread
-        self._feed_thread = threading.Thread(target=run_feed, daemon=True)
-        self._feed_thread.start()
-        self._feed_thread.join(timeout=5)  # Wait up to 5 seconds for init
-    
+            logger.info("📊 Market Data Service initialized with Mock Data ('yfinance' not installed)")
+
     @staticmethod
     def format_indian_symbol(symbol: str, exchange: str = "NSE") -> str:
         """Format Indian stock symbol"""
@@ -297,13 +220,7 @@ class MarketDataService:
         return info
 
     def _fetch_current_price(self, symbol: str) -> Optional[Dict]:
-        """Get current price - tries Groww, then Yahoo (if available), then Mock"""
-        
-        # Try Groww API first (when implemented)
-        if self.groww_api_key:
-            price = self._get_groww_price(symbol)
-            if price:
-                return price
+        """Get current price - tries Yahoo (if available), then Mock"""
         
         # Try Yahoo Finance only if available
         if YFINANCE_AVAILABLE and yf:
@@ -330,96 +247,6 @@ class MarketDataService:
         
         # Fallback to mock data
         return self._get_mock_price(symbol)
-    
-    def _get_groww_price(self, symbol: str) -> Optional[Dict]:
-        """
-        Get price from Groww API (READ-ONLY)
-        
-        Args:
-            symbol: Stock symbol (e.g., "RELIANCE.NS" or "RELIANCE")
-        
-        Returns:
-            Dict with price data or None
-        """
-        if not self._groww_initialized or not self._groww_feed:
-            return None
-        
-        # Strip exchange suffix for Groww (it uses plain symbols)
-        clean_symbol = symbol.replace(".NS", "").replace(".BO", "")
-        
-        try:
-            # Subscribe to live data
-            segment = GrowwAPI.SEGMENT_CASH
-            self._groww_feed.subscribe_live_data(segment, clean_symbol)
-            
-            # Get LTP with timeout
-            ltp_data = self._groww_feed.get_stocks_ltp(clean_symbol, timeout=5)
-            
-            if ltp_data:
-                ltp = ltp_data.get('ltp', 0)
-                change = ltp_data.get('change', 0)
-                change_pct = ltp_data.get('changePercent', 0)
-                
-                # Calculate previous close from change
-                prev_close = ltp - change if change else ltp
-                
-                return {
-                    "symbol": symbol,
-                    "current_price": float(ltp),
-                    "open": ltp_data.get('open'),
-                    "high": ltp_data.get('high'),
-                    "low": ltp_data.get('low'),
-                    "previous_close": float(prev_close),
-                    "change": float(change),
-                    "change_percent": float(change_pct),
-                    "volume": ltp_data.get('volume'),
-                    "name": clean_symbol,
-                    "exchange": "NSE" if ".NS" in symbol else "BSE",
-                    "is_mock": False,
-                    "source": "groww"
-                }
-        except Exception as e:
-            logger.warning(f"Groww API failed for {symbol}: {e}")
-        
-        return None
-    
-    def get_groww_holdings(self, timeout: int = 5) -> Optional[List[Dict]]:
-        """
-        Get user's holdings from Groww (READ-ONLY)
-        
-        Returns:
-            List of holdings or None
-        """
-        if not self._groww_initialized or not self._groww_api:
-            return None
-        
-        try:
-            holdings = self._groww_api.get_holdings(timeout=timeout)
-            return holdings
-        except Exception as e:
-            logger.error(f"Error fetching Groww holdings: {e}")
-            return None
-    
-    def get_groww_positions(self, timeout: int = 5) -> Optional[List[Dict]]:
-        """
-        Get user's positions from Groww (READ-ONLY)
-        
-        Returns:
-            List of positions or None
-        """
-        if not self._groww_initialized or not self._groww_api:
-            return None
-        
-        try:
-            positions = self._groww_api.get_positions(timeout=timeout)
-            return positions
-        except Exception as e:
-            logger.error(f"Error fetching Groww positions: {e}")
-            return None
-    
-    def is_groww_connected(self) -> bool:
-        """Check if Groww API is connected"""
-        return self._groww_initialized
     
     def get_stock_info(self, symbol: str) -> Optional[Dict]:
         """Get stock info (cached for CACHE_TTL seconds)"""

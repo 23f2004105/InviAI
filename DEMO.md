@@ -50,7 +50,7 @@ Two portfolios: **Long Term Wealth** (Reliance, TCS, HDFC Bank, Infosys, ITC) an
 ## Talking points (what's real)
 
 - FastAPI + PostgreSQL backend, JWT auth, per-user portfolios, holdings and transactions.
-- Live NSE/BSE quotes (Groww read-only API → Yahoo Finance → sample-price fallback), cached for 2 minutes and pre-warmed at startup.
+- Live NSE/BSE quotes (Yahoo Finance → sample-price fallback), cached for 2 minutes and pre-warmed at startup.
 - Portfolio value, cost basis, unrealised P&L and weights recalculated on every change.
 - AI investment advisor (Google Gemini) personalised with the investor profile, with an offline fallback.
 - Read-only by design: InviAI never places trades.

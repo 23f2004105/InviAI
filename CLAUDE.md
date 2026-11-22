@@ -6,7 +6,7 @@ Context for AI assistants working in this repo. Verified against the code on 202
 
 **InviAI** — portfolio tracking / planning app focused on the **Indian market** (NSE/BSE, INR). Users register, create portfolios, add stock holdings, see live-ish prices, dashboards/charts, and chat with a Gemini-powered "investment advisor". Status: alpha, under active development (4 commits; latest work = AI chatbot, uncommitted).
 
-Layout (this directory is the git root; the parent `D:\PROJECTS\InviAI\` holds only a stray `.venv/`, `groww_market_data.py` and an empty `groww script` — not part of the app):
+Layout (this directory is the git root; the parent `D:\PROJECTS\InviAI\` holds only a stray `.venv/` and `synopsis/` — not part of the app):
 
 ```
 backend/            FastAPI + SQLAlchemy 2 + PostgreSQL (Python 3.11)
@@ -54,7 +54,7 @@ Docker: `docker-compose up -d` (needs root `.env`). Postgres defaults: `inviai_u
   | `/api/market` | `market.py` | `/quote/{symbol}`, `/history/{symbol}`, `/search` (hardcoded list), `/indices`, `/overview`. **Unauthenticated.** |
   | `/api/ai` | `ai_chat.py` | `/chat`, `/quick-advice` via Gemini (`gemini-2.5-flash`), needs `GEMINI_API_KEY`. |
   | — | `auth.py` | **Dead code**: older Supabase auth, not mounted. Still imported by nothing; `supabase` package still in requirements. |
-- `services/market_data.py` — `MarketDataService` (singleton `market_data_service`). Priority: Groww API (read-only, if `GROWW_API_KEY`+`GROWW_SECRET`) → Yahoo Finance (`yfinance`) → built-in mock prices. `USE_MOCK_DATA` defaults to `"true"` but the flag is only stored, not actually consulted in the fetch paths. Indian symbols use `.NS` / `.BO` suffixes (`format_indian_symbol`). Indices: `^NSEI`, `^BSESN`, `^NSEBANK`. Service is explicitly **read-only — no order placement**; keep it that way.
+- `services/market_data.py` — `MarketDataService` (singleton `market_data_service`). Priority: Yahoo Finance (`yfinance`) → built-in mock prices (Groww integration was removed 2026-11-23). `USE_MOCK_DATA` defaults to `"true"` but the flag is only stored, not actually consulted in the fetch paths. Indian symbols use `.NS` / `.BO` suffixes (`format_indian_symbol`). Indices: `^NSEI`, `^BSESN`, `^NSEBANK`. Service is explicitly **read-only — no order placement**; keep it that way.
 
 ### Frontend (`InviAI-Frontend/app/`)
 - App Router pages: `/` , `login`, `register`, `dashboard`, `portfolios`, `assets`, `analytics`, `trends`, `reports`, `settings`, `help`. `layout.tsx` is a client component wrapping `AuthProvider` → `UserProvider`.
@@ -76,7 +76,7 @@ Browser → (Next rewrite or direct fetch with `Authorization: Bearer <jwt>`) �
 
 ## Environment variables (names only)
 - Root `.env` (docker-compose): `ENVIRONMENT`, `SECRET_KEY`, `POSTGRES_{DB,USER,PASSWORD,PORT}`, `SUPABASE_{URL,KEY,ANON_KEY}`, `MARKET_DATA_SOURCE`, `BACKEND_PORT`, `FRONTEND_PORT`, `NEXT_PUBLIC_*`, optional `CORS_ORIGINS`, `LOG_LEVEL`.
-- `backend/.env` (what local uvicorn actually loads): `POSTGRES_*`, `DATABASE_URL`, `SUPABASE_*`, `SECRET_KEY`, `ENVIRONMENT`, `USE_MOCK_DATA`, `GROWW_API_KEY`, `GROWW_SECRET`, `GEMINI_API_KEY`. `JWT_SECRET_KEY` is read by `auth_local.py` but **not set** anywhere, so the hardcoded fallback secret is in use.
+- `backend/.env` (what local uvicorn actually loads): `POSTGRES_*`, `DATABASE_URL`, `SUPABASE_*`, `SECRET_KEY`, `ENVIRONMENT`, `USE_MOCK_DATA`, `GEMINI_API_KEY`. `JWT_SECRET_KEY` is read by `auth_local.py` but **not set** anywhere, so the hardcoded fallback secret is in use.
 
 ## Known issues / gotchas (found while reading — not yet fixed)
 1. **FK mismatch**: `Portfolio.user_id` → `users.id`, but authentication returns `LocalUser` (`local_users.id`). Creating a portfolio uses `current_user.id` from `local_users`; this only works by coincidence of ids / will violate the FK if no matching `users` row exists. Needs a decision: point portfolios at `local_users`, or drop the legacy `User` model.

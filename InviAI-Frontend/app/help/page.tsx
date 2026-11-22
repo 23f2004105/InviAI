@@ -16,7 +16,7 @@ const faqs = [
   },
   {
     q: 'Where do the prices come from?',
-    a: 'Live quotes for NSE (.NS) and BSE (.BO) symbols come from market data providers (Groww read-only API or Yahoo Finance). Prices may be delayed; use "Refresh Prices" to update a portfolio.',
+    a: 'Live quotes for NSE (.NS) and BSE (.BO) symbols come from Yahoo Finance. Prices may be delayed; use "Refresh Prices" to update a portfolio.',
   },
   {
     q: 'How does the AI advisor work?',
