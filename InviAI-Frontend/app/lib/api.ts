@@ -1,5 +1,10 @@
 // InviAI Frontend API Client
-// Connects to FastAPI backend at localhost:8000
+// Connects to the FastAPI backend (NEXT_PUBLIC_API_URL, default localhost:8000).
+//
+// Mock data is used only in demo mode (no token, or the "demo_token" from the
+// login page's demo button) and for history/stats endpoints the backend does
+// not have yet. A signed-in user whose request fails gets a real error, not
+// fake portfolios.
 
 import {
   type User,
@@ -7,19 +12,23 @@ import {
   type HistoricalDataPoint,
   type MarketStats,
   type Asset,
-  // Keep mock data as fallback
   mockUser,
   mockPortfolios,
   mockNetWorthHistory,
   mockAssetHistory,
   mockPortfolioHistory,
   mockMarketStats,
-  getTopPerformingAssets,
-  getTotalPortfolioValue,
 } from './mockData';
 
 // API Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// True when there is no real signed-in user (logged out, or demo mode)
+export const isDemoSession = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  const token = localStorage.getItem('auth_token');
+  return !token || token === 'demo_token';
+};
 
 // Helper: Make API requests
 async function apiRequest<T>(
@@ -35,10 +44,19 @@ async function apiRequest<T>(
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error('Cannot reach the InviAI server. Check your connection and try again.');
+  }
+
+  if (response.status === 429) {
+    throw new Error('Too many attempts. Please wait a minute and try again.');
+  }
 
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
@@ -192,37 +210,28 @@ function convertPortfolio(backend: BackendPortfolio, assets: BackendAsset[] = []
 }
 
 export const getPortfolios = async (): Promise<Portfolio[]> => {
-  try {
-    const backendPortfolios = await apiRequest<BackendPortfolio[]>('/api/portfolios');
-    
-    const portfoliosWithAssets = await Promise.all(
-      backendPortfolios.map(async (p) => {
-        try {
-          const assets = await apiRequest<BackendAsset[]>(`/api/portfolios/${p.id}/assets`);
-          return convertPortfolio(p, assets);
-        } catch {
-          return convertPortfolio(p, []);
-        }
-      })
-    );
-    
-    return portfoliosWithAssets;
-  } catch (error) {
-    console.warn('Using mock portfolios:', error);
+  if (isDemoSession()) {
     return mockPortfolios;
   }
+
+  const backendPortfolios = await apiRequest<BackendPortfolio[]>('/api/portfolios');
+  return Promise.all(
+    backendPortfolios.map(async (p) => {
+      const assets = await apiRequest<BackendAsset[]>(`/api/portfolios/${p.id}/assets`);
+      return convertPortfolio(p, assets);
+    })
+  );
 };
 
 export const getPortfolioById = async (portfolioId: string): Promise<Portfolio | null> => {
-  try {
-    const id = portfolioId.replace('portfolio-', '');
-    const backend = await apiRequest<BackendPortfolio>(`/api/portfolios/${id}`);
-    const assets = await apiRequest<BackendAsset[]>(`/api/portfolios/${id}/assets`);
-    return convertPortfolio(backend, assets);
-  } catch (error) {
-    console.warn('Using mock portfolio:', error);
+  if (isDemoSession()) {
     return mockPortfolios.find(p => p.id === portfolioId) || null;
   }
+
+  const id = portfolioId.replace('portfolio-', '');
+  const backend = await apiRequest<BackendPortfolio>(`/api/portfolios/${id}`);
+  const assets = await apiRequest<BackendAsset[]>(`/api/portfolios/${id}/assets`);
+  return convertPortfolio(backend, assets);
 };
 
 export const createPortfolio = async (name: string, description?: string): Promise<Portfolio> => {
@@ -272,35 +281,23 @@ export const refreshPrices = async (portfolioId: string): Promise<BackendAsset[]
 };
 
 // ========================================
-// User API (with fallback to mock)
+// User API (mock only in demo mode)
 // ========================================
 
 export const getUser = async (): Promise<User> => {
-  try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    
-    if (!token || token === 'demo_token') {
-      // Return demo user
-      console.log('No token or demo token, returning mock user');
-      return mockUser;
-    }
-    
-    console.log('Fetching current user from backend...');
-    const backendUser = await getCurrentUser();
-    console.log('Backend user fetched:', backendUser);
-    
-    return {
-      id: String(backendUser.id),
-      name: backendUser.full_name || backendUser.email.split('@')[0],
-      email: backendUser.email,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.email}`,
-      totalNetWorth: 0,
-      currency: 'INR',
-    };
-  } catch (error) {
-    console.error('Error fetching user, falling back to mock:', error);
+  if (isDemoSession()) {
     return mockUser;
   }
+
+  const backendUser = await getCurrentUser();
+  return {
+    id: String(backendUser.id),
+    name: backendUser.full_name || backendUser.email.split('@')[0],
+    email: backendUser.email,
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${backendUser.email}`,
+    totalNetWorth: 0,
+    currency: 'INR',
+  };
 };
 
 // ========================================
@@ -337,42 +334,24 @@ export const getMarketStats = async (): Promise<MarketStats> => {
   return mockMarketStats;
 };
 
+// These build on getPortfolios(), which already returns mock data in demo mode
 export const getTopPerformers = async (): Promise<Asset[]> => {
-  try {
-    const portfolios = await getPortfolios();
-    const allAssets: Asset[] = portfolios.flatMap(p => p.assets);
-    return allAssets.sort((a, b) => b.changePercent24h - a.changePercent24h).slice(0, 5);
-  } catch {
-    return getTopPerformingAssets();
-  }
+  const portfolios = await getPortfolios();
+  const allAssets: Asset[] = portfolios.flatMap(p => p.assets);
+  return allAssets.sort((a, b) => b.changePercent24h - a.changePercent24h).slice(0, 5);
 };
 
 export const getTotalValue = async (): Promise<number> => {
-  try {
-    const portfolios = await getPortfolios();
-    return portfolios.reduce((sum, p) => sum + p.totalValue, 0);
-  } catch {
-    return getTotalPortfolioValue();
-  }
+  const portfolios = await getPortfolios();
+  return portfolios.reduce((sum, p) => sum + p.totalValue, 0);
 };
 
 export const searchAssets = async (query: string): Promise<Asset[]> => {
-  try {
-    const portfolios = await getPortfolios();
-    const allAssets: Asset[] = portfolios.flatMap(p => p.assets);
-    return allAssets.filter(
-      asset =>
-        asset.name.toLowerCase().includes(query.toLowerCase()) ||
-        asset.ticker.toLowerCase().includes(query.toLowerCase())
-    );
-  } catch {
-    const allAssets: Asset[] = mockPortfolios.flatMap(p => p.assets);
-    return allAssets.filter(
-      asset =>
-        asset.name.toLowerCase().includes(query.toLowerCase()) ||
-        asset.ticker.toLowerCase().includes(query.toLowerCase())
-    );
-  }
+  const portfolios = await getPortfolios();
+  const q = query.toLowerCase();
+  return portfolios
+    .flatMap(p => p.assets)
+    .filter(asset => asset.name.toLowerCase().includes(q) || asset.ticker.toLowerCase().includes(q));
 };
 
 export const updatePortfolioName = async (

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -34,7 +34,7 @@ class TransactionTypeEnum(str, Enum):
 class TransactionCreate(BaseModel):
     asset_id: Optional[int] = None
     transaction_type: TransactionTypeEnum
-    transaction_date: datetime = Field(default_factory=datetime.utcnow)
+    transaction_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     quantity: Optional[float] = None
     price: Optional[float] = None
     amount: float
@@ -228,7 +228,7 @@ async def create_transaction(
             if asset.total_cost > 0:
                 asset.unrealized_gain_loss_percentage = (asset.unrealized_gain_loss / asset.total_cost) * 100
         
-        asset.updated_at = datetime.utcnow()
+        asset.updated_at = datetime.now(timezone.utc)
     
     # Cash movements change the invested capital; BUY/SELL only change holdings
     if transaction.transaction_type == TransactionTypeEnum.DEPOSIT:
@@ -236,7 +236,7 @@ async def create_transaction(
     elif transaction.transaction_type == TransactionTypeEnum.WITHDRAWAL:
         portfolio.initial_value = max((portfolio.initial_value or 0) - transaction.amount, 0)
     
-    portfolio.updated_at = datetime.utcnow()
+    portfolio.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(db_transaction)

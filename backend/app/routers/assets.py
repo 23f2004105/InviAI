@@ -6,7 +6,7 @@ CRUD endpoints for portfolio assets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 from app.database import get_db
@@ -160,7 +160,7 @@ async def add_asset(
         unrealized_gain_loss=unrealized,
         unrealized_gain_loss_percentage=unrealized_pct,
         exchange=asset_data.exchange,
-        last_price_update=datetime.utcnow()
+        last_price_update=datetime.now(timezone.utc)
     )
     db.add(asset)
     db.commit()
@@ -287,7 +287,7 @@ async def refresh_asset_prices(
             asset.unrealized_gain_loss_percentage = (
                 (asset.unrealized_gain_loss / asset.total_cost * 100) if asset.total_cost > 0 else 0
             )
-            asset.last_price_update = datetime.utcnow()
+            asset.last_price_update = datetime.now(timezone.utc)
 
     db.commit()
     recalculate_portfolio(db, portfolio)

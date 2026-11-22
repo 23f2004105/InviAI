@@ -3,12 +3,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Portfolio } from '@/app/lib/mockData';
-import { getUser, getPortfolios } from '@/app/lib/api';
+import { getUser, getPortfolios, isDemoSession } from '@/app/lib/api';
 
 interface UserContextType {
   user: User | null;
   portfolios: Portfolio[];
   isLoading: boolean;
+  /** True when showing sample data (logged out or demo login) */
+  isDemo: boolean;
   error: string | null;
   refreshUser: () => Promise<void>;
   refreshPortfolios: () => Promise<void>;
@@ -26,27 +28,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user data
-  const fetchUser = async () => {
+  const [isDemo, setIsDemo] = useState(true);
+
+  const messageOf = (err: unknown, fallback: string) =>
+    err instanceof Error && err.message ? err.message : fallback;
+
+  // Fetch user data; returns the error message (or null) so callers can combine results
+  const fetchUser = async (): Promise<string | null> => {
     try {
-      const userData = await getUser();
-      setUser(userData);
-      setError(null);
+      setUser(await getUser());
+      return null;
     } catch (err) {
-      setError('Failed to fetch user data');
       console.error('Error fetching user:', err);
+      return messageOf(err, 'Failed to load your account');
     }
   };
 
-  // Fetch portfolios
-  const fetchPortfolios = async () => {
+  // Fetch portfolios. On failure keep whatever was already shown.
+  const fetchPortfolios = async (): Promise<string | null> => {
     try {
-      const portfolioData = await getPortfolios();
-      setPortfolios(portfolioData);
-      setError(null);
+      setPortfolios(await getPortfolios());
+      return null;
     } catch (err) {
-      setError('Failed to fetch portfolios');
       console.error('Error fetching portfolios:', err);
+      return messageOf(err, 'Failed to load your portfolios');
     }
   };
 
@@ -54,7 +59,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchUser(), fetchPortfolios()]);
+      setIsDemo(isDemoSession());
+      const errors = await Promise.all([fetchUser(), fetchPortfolios()]);
+      setError(errors.find(Boolean) ?? null);
       setIsLoading(false);
     };
 
@@ -76,19 +83,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // Refresh functions
   const refreshUser = async () => {
     setIsLoading(true);
-    await fetchUser();
+    setError(await fetchUser());
     setIsLoading(false);
   };
 
   // Refetch in the background so the page doesn't flash a full-screen spinner
   const refreshPortfolios = async () => {
-    await fetchPortfolios();
+    setError(await fetchPortfolios());
   };
 
   const value: UserContextType = {
     user,
     portfolios,
     isLoading,
+    isDemo,
     error,
     refreshUser,
     refreshPortfolios

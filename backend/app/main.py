@@ -16,12 +16,7 @@ from datetime import datetime, timezone
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-# Import database initialization
-from app.database import engine, Base
 from app.rate_limit import limiter
-
-# Import local auth model to ensure table is created
-from app.routers.auth_local import LocalUser
 
 # Import routers
 from app.routers import auth_local as auth
@@ -34,6 +29,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def run_migrations():
+    """Run `alembic upgrade head` using backend/alembic.ini"""
+    from alembic import command
+    from alembic.config import Config
+    cfg = Config(os.path.join(BACKEND_DIR, "alembic.ini"))
+    cfg.set_main_option("script_location", os.path.join(BACKEND_DIR, "alembic"))
+    cfg.attributes["skip_logging_config"] = True
+    command.upgrade(cfg, "head")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,12 +51,14 @@ async def lifespan(app: FastAPI):
     logger.info("Starting InviAI Backend...")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
     
-    # Create database tables
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created successfully")
-    except Exception as e:
-        logger.error(f"Error creating database tables: {e}")
+    # Apply database migrations (alembic upgrade head). Single-worker deploys
+    # only; set RUN_MIGRATIONS_ON_STARTUP=false if migrations run elsewhere.
+    if os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").lower() == "true":
+        try:
+            run_migrations()
+            logger.info("Database migrations applied")
+        except Exception as e:
+            logger.error(f"Error applying database migrations: {e}")
 
     # Pre-fetch index and popular stock quotes in the background so the first
     # dashboard/trends load is served from cache

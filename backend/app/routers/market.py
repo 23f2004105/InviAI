@@ -5,7 +5,7 @@ Market Data Router - Real-time stock data from NSE/BSE via Yahoo Finance
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import asyncio
 
@@ -123,7 +123,7 @@ async def get_stock_quote(symbol: str):
             dividend_yield=data.get('dividendYield'),
             fifty_two_week_high=data.get('fiftyTwoWeekHigh'),
             fifty_two_week_low=data.get('fiftyTwoWeekLow'),
-            last_updated=datetime.utcnow()
+            last_updated=datetime.now(timezone.utc)
         )
     except HTTPException:
         raise
@@ -265,7 +265,7 @@ async def get_market_indices():
                     change_percent=round(change_pct, 2),
                     high=data.get('dayHigh') or data.get('regularMarketDayHigh'),
                     low=data.get('dayLow') or data.get('regularMarketDayLow'),
-                    last_updated=datetime.utcnow()
+                    last_updated=datetime.now(timezone.utc)
                 ))
         except Exception as e:
             logger.warning(f"Failed to fetch index {symbol}: {e}")

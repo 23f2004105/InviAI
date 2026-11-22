@@ -41,8 +41,9 @@ logger.info(f"Database URL configured: {DATABASE_URL.split('@')[1] if '@' in DAT
 engine = create_engine(
     DATABASE_URL,
     poolclass=QueuePool,
-    pool_size=10,  # Number of connections to maintain
-    max_overflow=20,  # Maximum overflow connections
+    # Kept small: Neon's free tier caps connections
+    pool_size=int(os.getenv("DB_POOL_SIZE", "5")),
+    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "5")),
     pool_timeout=30,  # Timeout for getting connection from pool
     pool_recycle=3600,  # Recycle connections after 1 hour
     pool_pre_ping=True,  # Test connections before using them

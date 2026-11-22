@@ -17,7 +17,7 @@ const AUTH_ROUTES = ['/login', '/register', '/forgot-password'];
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user } = useUser();
+  const { user, error, isDemo, refreshUser, refreshPortfolios } = useUser();
   const { isAuthenticated, isLoading, logout } = useAuth();
   const pathname = usePathname();
 
@@ -65,6 +65,25 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Main content */}
         <main className="flex-1 lg:ml-64 p-6">
+          {error && (
+            <div
+              role="alert"
+              className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200"
+            >
+              <span>{error}</span>
+              <button
+                onClick={() => { refreshUser(); refreshPortfolios(); }}
+                className="rounded-md bg-red-600 px-3 py-1 font-medium text-white hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {isDemo && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              Demo mode: you are viewing sample data. Create an account to track your own portfolio.
+            </div>
+          )}
           {children}
         </main>
       </div>
