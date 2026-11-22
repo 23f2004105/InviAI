@@ -48,9 +48,9 @@ engine = create_engine(
     pool_recycle=3600,  # Recycle connections after 1 hour
     pool_pre_ping=True,  # Test connections before using them
     echo=os.getenv("ENVIRONMENT") == "development",  # Log SQL in development
-    connect_args={
-        "options": "-c timezone=utc"  # Set timezone to UTC
-    }
+    # Session timezone UTC. PgBouncer-style poolers (e.g. Neon "-pooler" hosts)
+    # reject the "options" startup parameter, so skip it there.
+    connect_args={} if "-pooler" in DATABASE_URL else {"options": "-c timezone=utc"},
 )
 
 

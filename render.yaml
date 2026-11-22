@@ -1,0 +1,26 @@
+# Render Blueprint for the InviAI backend (free tier).
+# Render dashboard -> New -> Blueprint -> pick this repo. See DEPLOYMENT.md.
+services:
+  - type: web
+    name: inviai-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Migrations run on startup (RUN_MIGRATIONS_ON_STARTUP defaults to true).
+    # --proxy-headers so rate limiting sees the visitor's IP, not Render's proxy.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL        # Neon direct connection string, with ?sslmode=require
+        sync: false
+      - key: CORS_ORIGINS        # e.g. https://inviai.vercel.app
+        sync: false
+      - key: GEMINI_API_KEY      # optional; chat falls back to the offline advisor
+        sync: false
