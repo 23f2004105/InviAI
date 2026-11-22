@@ -28,6 +28,9 @@ requests==2.31.0
 yfinance==0.2.32
 growwapi>=1.3.0
 
+# AI Chat (Gemini)
+google-generativeai>=0.8.0
+
 # Data Processing & AI/ML
 pandas==2.1.3
 numpy==1.26.2

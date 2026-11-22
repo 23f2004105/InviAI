@@ -38,12 +38,9 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     """Schema for user response"""
     id: int
-    supabase_id: str
     email: str
     full_name: Optional[str]
-    risk_tolerance: str
     is_active: bool
-    is_verified: bool
     created_at: datetime
     last_login: Optional[datetime]
     

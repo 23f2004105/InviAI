@@ -14,6 +14,7 @@ from jose import JWTError, jwt
 import os
 
 from app.database import get_db
+from app.models import LocalUser
 from app.schemas import UserRegister, UserLogin, UserResponse, TokenResponse
 
 logger = logging.getLogger(__name__)
@@ -52,27 +53,6 @@ def get_password_hash(password: str) -> str:
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "inviai-super-secret-key-change-in-production-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
-
-
-# ========================================
-# Local User Model (simplified)
-# ========================================
-
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.sql import func
-from app.database import Base
-
-class LocalUser(Base):
-    """Local user model with password hash"""
-    __tablename__ = "local_users"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    full_name = Column(String(255), nullable=True)
-    password_hash = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_login = Column(DateTime(timezone=True), nullable=True)
 
 
 # ========================================

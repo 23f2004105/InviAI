@@ -10,7 +10,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.database import get_db
-from app.models import Asset, Portfolio, User, AssetType
+from app.models import LocalUser, Asset, Portfolio, AssetType
 from app.routers.auth_local import get_current_user
 from app.services.market_data import market_data_service, MarketDataService
 
@@ -88,11 +88,11 @@ def recalculate_portfolio(db: Session, portfolio: Portfolio):
     for asset in assets:
         asset.portfolio_percentage = (asset.current_value / total_value * 100) if total_value > 0 else 0
 
-    # Update portfolio value
+    # Update portfolio value; returns are measured against the cost basis of holdings
     portfolio.current_value = total_value
-    if portfolio.initial_value > 0:
-        portfolio.total_returns = total_value - portfolio.initial_value
-        portfolio.total_returns_percentage = (portfolio.total_returns / portfolio.initial_value) * 100
+    total_cost = sum(asset.total_cost or 0 for asset in assets)
+    portfolio.total_returns = total_value - total_cost
+    portfolio.total_returns_percentage = (portfolio.total_returns / total_cost * 100) if total_cost > 0 else 0
     db.commit()
 
 
@@ -104,7 +104,7 @@ def recalculate_portfolio(db: Session, portfolio: Portfolio):
 async def list_assets(
     portfolio_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Get all assets in a portfolio
@@ -119,7 +119,7 @@ async def add_asset(
     portfolio_id: int,
     asset_data: AssetCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Add an asset to a portfolio
@@ -178,7 +178,7 @@ async def get_asset(
     portfolio_id: int,
     asset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Get a specific asset
@@ -203,7 +203,7 @@ async def update_asset(
     asset_id: int,
     asset_data: AssetUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Update an asset (quantity, cost basis, target allocation)
@@ -243,7 +243,7 @@ async def delete_asset(
     portfolio_id: int,
     asset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Remove an asset from a portfolio
@@ -270,7 +270,7 @@ async def delete_asset(
 async def refresh_asset_prices(
     portfolio_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Refresh current prices for all assets in a portfolio

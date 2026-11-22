@@ -66,7 +66,7 @@ export const AssetTable: React.FC<AssetTableProps> = ({
               </th>
             )}
             <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-              24h Change
+              Return
             </th>
           </tr>
         </thead>

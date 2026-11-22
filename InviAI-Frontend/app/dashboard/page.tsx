@@ -8,7 +8,8 @@ import { PortfolioValueChart } from '@/app/components/dashboard/PortfolioValueCh
 import { AssetTable } from '@/app/components/dashboard/AssetTable';
 import { MarketOverview } from '@/app/components/dashboard/MarketOverview';
 import { Watchlist } from '@/app/components/dashboard/Watchlist';
-import { AddAssetModal } from '@/app/components/dashboard/AddAssetModal';
+import { CreatePortfolioModal } from '@/app/components/dashboard/CreatePortfolioModal';
+import { ChatBot, ChatButton } from '@/app/components/chat/ChatBot';
 import { useUser } from '@/app/contexts/UserContext';
 import { getNetWorthHistory, getTopPerformers, addAsset } from '@/app/lib/api';
 import { HistoricalDataPoint, Asset } from '@/app/lib/mockData';
@@ -23,10 +24,12 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, portfolios, isLoading } = useUser();
+  const { user, portfolios, isLoading, refreshPortfolios } = useUser();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [netWorthHistory, setNetWorthHistory] = useState<HistoricalDataPoint[]>([]);
   const [topPerformers, setTopPerformers] = useState<Asset[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,6 +59,13 @@ export default function DashboardPage() {
   const totalChange = portfolios.reduce((sum, p) => sum + p.change24h, 0);
   const totalChangePercent = totalValue > 0 ? (totalChange / (totalValue - totalChange)) * 100 : 0;
 
+  // The backend has no value history yet, so scale the sample curve to end at
+  // the user's real current value; keeps the chart consistent with the stats
+  const lastHistoryValue = netWorthHistory[netWorthHistory.length - 1]?.value ?? 0;
+  const chartHistory = totalValue > 0 && lastHistoryValue > 0
+    ? netWorthHistory.map((point) => ({ ...point, value: point.value * (totalValue / lastHistoryValue) }))
+    : netWorthHistory;
+
   if (isLoading || dataLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -83,7 +93,10 @@ export default function DashboardPage() {
           <button className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             Last 12 Months
           </button>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Add Portfolio
           </button>
@@ -170,7 +183,7 @@ export default function DashboardPage() {
               {topPerformers[0]?.ticker || 'N/A'}
             </div>
             <div className="text-sm text-green-600">
-              +{topPerformers[0]?.changePercent24h.toFixed(2)}% today
+              +{topPerformers[0]?.changePercent24h.toFixed(2)}% return
             </div>
           </CardContent>
         </Card>
@@ -185,7 +198,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <PortfolioValueChart
-              data={netWorthHistory}
+              data={chartHistory}
               height={300}
               color="#3b82f6"
               showArea={true}
@@ -267,6 +280,16 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* AI Chatbot */}
+      <ChatBot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {!isChatOpen && <ChatButton onClick={() => setIsChatOpen(true)} />}
+
+      <CreatePortfolioModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={refreshPortfolios}
+      />
     </div>
   );
 }

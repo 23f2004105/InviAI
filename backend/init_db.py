@@ -16,7 +16,7 @@ from app.database import (
     reset_db,
     SessionLocal
 )
-from app.models import User, Portfolio, Asset, Transaction
+from app.models import LocalUser, Portfolio, Asset, Transaction
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -52,10 +52,10 @@ def test_crud_operations():
     db = SessionLocal()
     try:
         # Create a test user
-        test_user = User(
-            supabase_id="test_supabase_id_123",
+        test_user = LocalUser(
             email="test@example.com",
-            full_name="Test User"
+            full_name="Test User",
+            password_hash="not-a-real-hash"
         )
         db.add(test_user)
         db.commit()
@@ -63,7 +63,7 @@ def test_crud_operations():
         logger.info(f"✅ Created test user: {test_user.email}")
         
         # Read user
-        user = db.query(User).filter(User.email == "test@example.com").first()
+        user = db.query(LocalUser).filter(LocalUser.email == "test@example.com").first()
         if user:
             logger.info(f"✅ Read test user: {user.email}")
         

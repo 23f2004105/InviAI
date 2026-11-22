@@ -13,6 +13,7 @@ from enum import Enum
 from app.database import get_db
 from app.models import Transaction, Portfolio, Asset, TransactionType
 from app.routers.auth_local import get_current_user
+from app.routers.assets import recalculate_portfolio
 
 router = APIRouter()
 
@@ -229,16 +230,17 @@ async def create_transaction(
         
         asset.updated_at = datetime.utcnow()
     
-    # Update portfolio value
-    if transaction.transaction_type in [TransactionTypeEnum.DEPOSIT, TransactionTypeEnum.BUY]:
+    # Cash movements change the invested capital; BUY/SELL only change holdings
+    if transaction.transaction_type == TransactionTypeEnum.DEPOSIT:
         portfolio.initial_value = (portfolio.initial_value or 0) + transaction.amount
-    elif transaction.transaction_type in [TransactionTypeEnum.WITHDRAWAL, TransactionTypeEnum.SELL]:
-        portfolio.initial_value = (portfolio.initial_value or 0) - transaction.amount
+    elif transaction.transaction_type == TransactionTypeEnum.WITHDRAWAL:
+        portfolio.initial_value = max((portfolio.initial_value or 0) - transaction.amount, 0)
     
     portfolio.updated_at = datetime.utcnow()
     
     db.commit()
     db.refresh(db_transaction)
+    recalculate_portfolio(db, portfolio)
     
     return TransactionResponse(
         id=db_transaction.id,
@@ -340,7 +342,20 @@ async def delete_transaction(
             detail="Transaction not found"
         )
     
+    # Reverse the holding change made when this BUY/SELL was recorded
+    asset = db.query(Asset).filter(Asset.id == transaction.asset_id).first() if transaction.asset_id else None
+    if asset and transaction.quantity:
+        if transaction.transaction_type == TransactionType.BUY:
+            asset.quantity = max(asset.quantity - transaction.quantity, 0)
+        elif transaction.transaction_type == TransactionType.SELL:
+            asset.quantity += transaction.quantity
+        asset.total_cost = asset.quantity * asset.average_cost
+        asset.current_value = asset.quantity * asset.current_price
+        asset.unrealized_gain_loss = asset.current_value - asset.total_cost
+        asset.unrealized_gain_loss_percentage = (asset.unrealized_gain_loss / asset.total_cost * 100) if asset.total_cost > 0 else 0
+    
     db.delete(transaction)
     db.commit()
+    recalculate_portfolio(db, portfolio)
     
     return None

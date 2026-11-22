@@ -83,8 +83,13 @@ class MarketDataService:
     NSE_SUFFIX = ".NS"
     BSE_SUFFIX = ".BO"
     
+    # Seconds a fetched quote is reused before hitting the provider again
+    CACHE_TTL = 120
+    
     def __init__(self):
         """Initialize market data service"""
+        self._cache: Dict[str, tuple] = {}
+        self._cache_lock = threading.Lock()
         self.groww_api_key = os.getenv("GROWW_API_KEY")
         self.groww_secret = os.getenv("GROWW_SECRET")
         self.use_mock = os.getenv("USE_MOCK_DATA", "true").lower() == "true"
@@ -248,7 +253,24 @@ class MarketDataService:
         
         return prices
     
+    def _cached(self, key: str, fetch):
+        """Return a cached result for key, calling fetch() when missing or stale."""
+        now = time.time()
+        with self._cache_lock:
+            hit = self._cache.get(key)
+            if hit and now - hit[0] < self.CACHE_TTL:
+                return hit[1]
+        value = fetch()
+        if value:
+            with self._cache_lock:
+                self._cache[key] = (now, value)
+        return value
+    
     def get_current_price(self, symbol: str) -> Optional[Dict]:
+        """Get current price (cached for CACHE_TTL seconds)"""
+        return self._cached(f"price:{symbol}", lambda: self._fetch_current_price(symbol))
+    
+    def _fetch_current_price(self, symbol: str) -> Optional[Dict]:
         """Get current price - tries Groww, then Yahoo (if available), then Mock"""
         
         # Try Groww API first (when implemented)
@@ -375,6 +397,10 @@ class MarketDataService:
         return self._groww_initialized
     
     def get_stock_info(self, symbol: str) -> Optional[Dict]:
+        """Get stock info (cached for CACHE_TTL seconds)"""
+        return self._cached(f"info:{symbol}", lambda: self._fetch_stock_info(symbol))
+    
+    def _fetch_stock_info(self, symbol: str) -> Optional[Dict]:
         """Get stock info with fallback to mock"""
         
         # Try Yahoo Finance only if available

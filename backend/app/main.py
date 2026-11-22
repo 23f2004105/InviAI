@@ -20,7 +20,7 @@ from app.routers.auth_local import LocalUser
 
 # Import routers
 from app.routers import auth_local as auth
-from app.routers import portfolios, assets, transactions, market
+from app.routers import portfolios, assets, transactions, market, ai_chat
 
 # Configure logging
 logging.basicConfig(
@@ -45,7 +45,22 @@ async def lifespan(app: FastAPI):
         logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Error creating database tables: {e}")
-    
+
+    # Pre-fetch index and popular stock quotes in the background so the first
+    # dashboard/trends load is served from cache
+    def warm_market_cache():
+        from concurrent.futures import ThreadPoolExecutor
+        from app.services.market_data import market_data_service
+        symbols = ["^NSEI", "^BSESN", "^NSEBANK", "RELIANCE.NS", "TCS.NS", "INFY.NS",
+                   "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "BHARTIARTL.NS", "ITC.NS",
+                   "HINDUNILVR.NS", "KOTAKBANK.NS"]
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(market_data_service.get_stock_info, symbols))
+        logger.info("Market data cache warmed")
+
+    import threading
+    threading.Thread(target=warm_market_cache, daemon=True).start()
+
     yield
     
     # Shutdown
@@ -168,6 +183,7 @@ app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolio
 app.include_router(assets.router, prefix="/api/portfolios", tags=["Assets"])
 app.include_router(transactions.router, prefix="/api/portfolios", tags=["Transactions"])
 app.include_router(market.router, prefix="/api/market", tags=["Market Data"])
+app.include_router(ai_chat.router, prefix="/api/ai", tags=["AI Chat"])
 
 
 # ========================================

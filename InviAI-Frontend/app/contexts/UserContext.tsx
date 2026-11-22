@@ -80,10 +80,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setIsLoading(false);
   };
 
+  // Refetch in the background so the page doesn't flash a full-screen spinner
   const refreshPortfolios = async () => {
-    setIsLoading(true);
     await fetchPortfolios();
-    setIsLoading(false);
   };
 
   const value: UserContextType = {

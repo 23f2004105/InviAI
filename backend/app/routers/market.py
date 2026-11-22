@@ -7,12 +7,13 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import logging
+import asyncio
 
-from app.services.market_data import MarketDataService
+from app.services.market_data import market_data_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-market_service = MarketDataService()
+market_service = market_data_service
 
 
 # ========================================
@@ -139,23 +140,30 @@ async def get_stock_history(
     try:
         history = market_service.get_stock_history(symbol, period=period, interval=interval)
         
-        if history.empty:
+        if not history:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"No historical data found for '{symbol}'"
             )
-        
+
+        # The service returns list[dict]: Yahoo rows use capitalised keys and a
+        # 'Date' Timestamp, mock rows use lowercase keys and an ISO 'date' string.
+        def field(row, name):
+            return row.get(name.capitalize(), row.get(name))
+
         result = []
-        for date, row in history.iterrows():
+        for row in history:
+            raw_date = row.get('Date') or row.get('date')
+            date_str = raw_date.strftime('%Y-%m-%d') if hasattr(raw_date, 'strftime') else str(raw_date)[:10]
             result.append(HistoricalDataPoint(
-                date=date.strftime('%Y-%m-%d'),
-                open=round(row['Open'], 2),
-                high=round(row['High'], 2),
-                low=round(row['Low'], 2),
-                close=round(row['Close'], 2),
-                volume=int(row['Volume'])
+                date=date_str,
+                open=round(field(row, 'open'), 2),
+                high=round(field(row, 'high'), 2),
+                low=round(field(row, 'low'), 2),
+                close=round(field(row, 'close'), 2),
+                volume=int(field(row, 'volume') or 0)
             ))
-        
+
         return result
     except HTTPException:
         raise
@@ -275,6 +283,11 @@ async def get_market_overview():
         "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "HINDUNILVR.NS", "KOTAKBANK.NS"
     ]
     
+    # Warm the quote cache in parallel threads, then build quotes from it
+    await asyncio.gather(
+        *[asyncio.to_thread(market_service.get_stock_info, s) for s in sample_stocks],
+        return_exceptions=True
+    )
     quotes = []
     for symbol in sample_stocks:
         try:

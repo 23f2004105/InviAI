@@ -11,8 +11,8 @@ import os
 import logging
 from dotenv import load_dotenv
 
-# Load .env file
-load_dotenv()
+# Load backend/.env regardless of the directory the server is started from
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def init_db():
     """
     try:
         # Import all models to ensure they are registered with Base
-        from app.models import User, Portfolio, Asset, Transaction, MarketDataCache
+        from app.models import LocalUser, Portfolio, Asset, Transaction, MarketDataCache
         
         # Create all tables
         Base.metadata.create_all(bind=engine)
@@ -169,7 +169,7 @@ class DatabaseSession:
     Context manager for database sessions
     Usage:
         with DatabaseSession() as db:
-            user = db.query(User).first()
+            user = db.query(LocalUser).first()
     """
     def __enter__(self):
         self.db = SessionLocal()

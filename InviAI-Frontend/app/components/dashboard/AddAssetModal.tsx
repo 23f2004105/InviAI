@@ -1,7 +1,7 @@
 // Add Asset Modal - Add stocks to portfolio with quantity and price
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, IndianRupee, Hash, Loader2 } from 'lucide-react';
 import { Button } from '@/app/components/ui/Button';
 import { StockSearchModal } from './StockSearchModal';
@@ -39,9 +39,22 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // StockSearchModal calls onClose right after onSelectStock; this flag stops
+  // that close from wiping the selection we just made.
+  const justSelected = useRef(false);
+
   const handleStockSelect = (stock: StockInfo) => {
+    justSelected.current = true;
     setSelectedStock(stock);
     setStep('details');
+  };
+
+  const handleSearchClose = () => {
+    if (justSelected.current) {
+      justSelected.current = false;
+      return;
+    }
+    handleClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +118,7 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
     return (
       <StockSearchModal
         isOpen={true}
-        onClose={handleClose}
+        onClose={handleSearchClose}
         onSelectStock={handleStockSelect}
         title={`Add Stock to ${portfolioName}`}
       />

@@ -10,7 +10,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.database import get_db
-from app.models import Portfolio, User
+from app.models import LocalUser, Portfolio
 from app.routers.auth_local import get_current_user
 
 router = APIRouter()
@@ -60,7 +60,7 @@ class PortfolioResponse(BaseModel):
 @router.get("/", response_model=List[PortfolioResponse])
 async def list_portfolios(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Get all portfolios for the current user
@@ -73,7 +73,7 @@ async def list_portfolios(
 async def create_portfolio(
     portfolio_data: PortfolioCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Create a new portfolio for the current user
@@ -103,7 +103,7 @@ async def create_portfolio(
 async def get_portfolio(
     portfolio_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Get a specific portfolio by ID
@@ -126,7 +126,7 @@ async def update_portfolio(
     portfolio_id: int,
     portfolio_data: PortfolioUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Update a portfolio
@@ -164,7 +164,7 @@ async def update_portfolio(
 async def delete_portfolio(
     portfolio_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: LocalUser = Depends(get_current_user)
 ):
     """
     Delete a portfolio

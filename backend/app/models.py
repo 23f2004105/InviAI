@@ -49,35 +49,26 @@ class RiskTolerance(str, enum.Enum):
 # User Model
 # ========================================
 
-class User(Base):
+class LocalUser(Base):
     """
-    User model for authentication and profile management
-    Note: Primary authentication is handled by Supabase
-    This model stores additional user metadata
+    User model for local email/password authentication (table: local_users).
+    Portfolios reference this table; the legacy Supabase `users` table is gone.
     """
-    __tablename__ = "users"
+    __tablename__ = "local_users"
     
     id = Column(Integer, primary_key=True, index=True)
-    supabase_id = Column(String(255), unique=True, index=True, nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=True)
-    
-    # Profile settings
-    risk_tolerance = Column(SQLEnum(RiskTolerance), default=RiskTolerance.MODERATE)
-    investment_goals = Column(Text, nullable=True)
-    
-    # Metadata
+    password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
     portfolios = relationship("Portfolio", back_populates="owner", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<User(id={self.id}, email='{self.email}')>"
+        return f"<LocalUser(id={self.id}, email='{self.email}')>"
 
 
 # ========================================
@@ -91,7 +82,7 @@ class Portfolio(Base):
     __tablename__ = "portfolios"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("local_users.id", ondelete="CASCADE"), nullable=False)
     
     # Portfolio details
     name = Column(String(255), nullable=False)
@@ -114,7 +105,7 @@ class Portfolio(Base):
     last_optimized = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    owner = relationship("User", back_populates="portfolios")
+    owner = relationship("LocalUser", back_populates="portfolios")
     assets = relationship("Asset", back_populates="portfolio", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="portfolio", cascade="all, delete-orphan")
     
