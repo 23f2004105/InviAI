@@ -17,26 +17,28 @@ DEMO_EMAIL = "demo@inviai.app"
 DEMO_PASSWORD = "Demo@2026"
 DEMO_NAME = "Aarav Mehta"
 
+# (symbol, name, quantity, return since purchase). The buy price is derived
+# from the live price, so the demo always shows realistic gains/losses.
 PORTFOLIOS = [
     {
         "name": "Long Term Wealth",
         "description": "Blue-chip NSE stocks held for 5+ years",
         "holdings": [
-            ("RELIANCE", "Reliance Industries Ltd", 25, 2280),
-            ("TCS", "Tata Consultancy Services Ltd", 12, 3450),
-            ("HDFCBANK", "HDFC Bank Ltd", 40, 1520),
-            ("INFY", "Infosys Ltd", 30, 1390),
-            ("ITC", "ITC Ltd", 120, 410),
+            ("RELIANCE", "Reliance Industries Ltd", 40, 0.14),
+            ("TCS", "Tata Consultancy Services Ltd", 20, -0.06),
+            ("HDFCBANK", "HDFC Bank Ltd", 60, 0.18),
+            ("INFY", "Infosys Ltd", 35, 0.09),
+            ("ITC", "ITC Ltd", 150, 0.05),
         ],
     },
     {
         "name": "Growth Picks",
         "description": "Higher-growth large and mid caps",
         "holdings": [
-            ("BAJFINANCE", "Bajaj Finance Ltd", 8, 6500),
-            ("TITAN", "Titan Company Ltd", 15, 3150),
-            ("BHARTIARTL", "Bharti Airtel Ltd", 35, 1180),
-            ("TATAMOTORS", "Tata Motors Ltd", 60, 690),
+            ("BAJFINANCE", "Bajaj Finance Ltd", 50, 0.27),
+            ("TITAN", "Titan Company Ltd", 15, 0.21),
+            ("BHARTIARTL", "Bharti Airtel Ltd", 30, 0.32),
+            ("TMPV", "Tata Motors Passenger Vehicles Ltd", 120, -0.11),
         ],
     },
 ]
@@ -63,7 +65,10 @@ def main():
         portfolio.raise_for_status()
         pid = portfolio.json()["id"]
 
-        for symbol, name, qty, cost in spec["holdings"]:
+        for symbol, name, qty, gain in spec["holdings"]:
+            quote = session.get(f"{API}/api/market/quote/{symbol}.NS")
+            quote.raise_for_status()
+            cost = round(quote.json()["current_price"] / (1 + gain), 2)
             asset = session.post(f"{API}/api/portfolios/{pid}/assets", json={
                 "symbol": symbol, "name": name, "asset_type": "stock",
                 "quantity": qty, "average_cost": cost, "exchange": "NSE",

@@ -25,7 +25,10 @@ httpx>=0.24.0,<0.25.0
 requests==2.31.0
 
 # Market Data
-yfinance==0.2.32
+# yfinance < 0.2.50 can no longer reach Yahoo (429 / "no price data found");
+# curl_cffi < 0.14 keeps certifi compatible with growwapi
+yfinance==0.2.66
+curl_cffi>=0.10,<0.14
 growwapi>=1.3.0
 
 # AI Chat (Gemini)

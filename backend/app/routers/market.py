@@ -62,6 +62,8 @@ class MarketIndex(BaseModel):
     value: float
     change: float
     change_percent: float
+    high: Optional[float] = None
+    low: Optional[float] = None
     last_updated: datetime
 
 
@@ -72,6 +74,11 @@ class MarketOverview(BaseModel):
     top_gainers: List[StockQuote] = []
     top_losers: List[StockQuote] = []
     most_active: List[StockQuote] = []
+    # Breadth across the tracked large caps (not the whole exchange)
+    tracked: int = 0
+    advances: int = 0
+    declines: int = 0
+    total_volume: int = 0
 
 
 # ========================================
@@ -200,7 +207,8 @@ async def search_stocks(
         {"symbol": "WIPRO.NS", "name": "Wipro Limited", "exchange": "NSE", "type": "stock"},
         {"symbol": "ASIANPAINT.NS", "name": "Asian Paints Limited", "exchange": "NSE", "type": "stock"},
         {"symbol": "MARUTI.NS", "name": "Maruti Suzuki India Limited", "exchange": "NSE", "type": "stock"},
-        {"symbol": "TATAMOTORS.NS", "name": "Tata Motors Limited", "exchange": "NSE", "type": "stock"},
+        {"symbol": "TMPV.NS", "name": "Tata Motors Passenger Vehicles Limited", "exchange": "NSE", "type": "stock"},
+        {"symbol": "TMCV.NS", "name": "Tata Motors Limited (Commercial Vehicles)", "exchange": "NSE", "type": "stock"},
         {"symbol": "SUNPHARMA.NS", "name": "Sun Pharmaceutical Industries", "exchange": "NSE", "type": "stock"},
         {"symbol": "TITAN.NS", "name": "Titan Company Limited", "exchange": "NSE", "type": "stock"},
         {"symbol": "BAJFINANCE.NS", "name": "Bajaj Finance Limited", "exchange": "NSE", "type": "stock"},
@@ -231,12 +239,18 @@ async def get_market_indices():
         ("^NSEI", "NIFTY 50"),
         ("^BSESN", "SENSEX"),
         ("^NSEBANK", "NIFTY Bank"),
+        ("^CNXIT", "NIFTY IT"),
     ]
     
+    infos = await asyncio.gather(
+        *[asyncio.to_thread(market_service.get_stock_info, symbol) for symbol, _ in indices],
+        return_exceptions=True
+    )
     results = []
-    for symbol, name in indices:
+    for (symbol, name), data in zip(indices, infos):
         try:
-            data = market_service.get_stock_info(symbol)
+            if isinstance(data, Exception):
+                raise data
             if data:
                 current = data.get('regularMarketPrice', 0)
                 previous = data.get('regularMarketPreviousClose', 0)
@@ -249,6 +263,8 @@ async def get_market_indices():
                     value=round(current, 2),
                     change=round(change, 2),
                     change_percent=round(change_pct, 2),
+                    high=data.get('dayHigh') or data.get('regularMarketDayHigh'),
+                    low=data.get('dayLow') or data.get('regularMarketDayLow'),
                     last_updated=datetime.utcnow()
                 ))
         except Exception as e:
@@ -300,6 +316,11 @@ async def get_market_overview():
     sorted_by_change = sorted(quotes, key=lambda x: x.change_percent, reverse=True)
     overview.top_gainers = sorted_by_change[:3]
     overview.top_losers = sorted_by_change[-3:][::-1]
+    
+    overview.tracked = len(quotes)
+    overview.advances = sum(1 for q in quotes if q.change_percent > 0)
+    overview.declines = sum(1 for q in quotes if q.change_percent < 0)
+    overview.total_volume = sum(q.volume or 0 for q in quotes)
     
     # Sort by volume for most active
     sorted_by_volume = sorted(quotes, key=lambda x: x.volume or 0, reverse=True)

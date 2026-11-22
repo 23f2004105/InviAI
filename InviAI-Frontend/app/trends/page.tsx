@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/Card';
 import { MarketOverview as MarketOverviewWidget } from '@/app/components/dashboard/MarketOverview';
 import { TrendingUp, TrendingDown, Activity, RefreshCw, BarChart2 } from 'lucide-react';
-import { fetchMarketOverview, StockQuote } from '@/app/lib/marketApi';
+import { fetchMarketOverview, StockQuote, MarketOverview } from '@/app/lib/marketApi';
 
 export default function TrendsPage() {
   const [activeTab, setActiveTab] = useState<'gainers' | 'losers' | 'active'>('gainers');
@@ -14,6 +14,7 @@ export default function TrendsPage() {
   const [topGainers, setTopGainers] = useState<StockQuote[]>([]);
   const [topLosers, setTopLosers] = useState<StockQuote[]>([]);
   const [mostActive, setMostActive] = useState<StockQuote[]>([]);
+  const [breadth, setBreadth] = useState<MarketOverview['breadth']>(null);
 
   const loadMarketData = async () => {
     try {
@@ -21,6 +22,7 @@ export default function TrendsPage() {
       setTopGainers(overview.topGainers);
       setTopLosers(overview.topLosers);
       setMostActive(overview.mostActive);
+      setBreadth(overview.breadth);
     } catch (error) {
       console.error('Error loading market data:', error);
     } finally {
@@ -205,7 +207,8 @@ export default function TrendsPage() {
         </CardContent>
       </Card>
 
-      {/* Market Stats */}
+      {/* Market breadth across the tracked large caps */}
+      {breadth && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -215,11 +218,11 @@ export default function TrendsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Advances</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">1,245</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{breadth.advances} of {breadth.tracked}</p>
               </div>
             </div>
             <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500 rounded-full" style={{ width: '62%' }}></div>
+              <div className="h-full bg-green-500 rounded-full" style={{ width: `${(breadth.advances / breadth.tracked) * 100}%` }}></div>
             </div>
           </CardContent>
         </Card>
@@ -232,11 +235,11 @@ export default function TrendsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Declines</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">756</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{breadth.declines} of {breadth.tracked}</p>
               </div>
             </div>
             <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-red-500 rounded-full" style={{ width: '38%' }}></div>
+              <div className="h-full bg-red-500 rounded-full" style={{ width: `${(breadth.declines / breadth.tracked) * 100}%` }}></div>
             </div>
           </CardContent>
         </Card>
@@ -249,15 +252,16 @@ export default function TrendsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Volume</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">₹48,562 Cr</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">{(breadth.totalVolume / 1e7).toFixed(2)} Cr shares</p>
               </div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              +12.5% vs yesterday
+              Traded across {breadth.tracked} tracked NIFTY large caps
             </p>
           </CardContent>
         </Card>
       </div>
+      )}
     </div>
   );
 }

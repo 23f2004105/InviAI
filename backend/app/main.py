@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     def warm_market_cache():
         from concurrent.futures import ThreadPoolExecutor
         from app.services.market_data import market_data_service
-        symbols = ["^NSEI", "^BSESN", "^NSEBANK", "RELIANCE.NS", "TCS.NS", "INFY.NS",
+        symbols = ["^NSEI", "^BSESN", "^NSEBANK", "^CNXIT", "RELIANCE.NS", "TCS.NS", "INFY.NS",
                    "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "BHARTIARTL.NS", "ITC.NS",
                    "HINDUNILVR.NS", "KOTAKBANK.NS"]
         with ThreadPoolExecutor(max_workers=8) as pool:

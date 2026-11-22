@@ -36,38 +36,41 @@ logger = logging.getLogger(__name__)
 # Mock Data for Indian Stocks (Fallback)
 # ========================================
 
+# Fallback prices used only when live providers are unreachable (snapshot of real closes, Nov 2026)
 MOCK_INDIAN_STOCKS = {
-    "RELIANCE.NS": {"name": "Reliance Industries Limited", "price": 2456.75, "change": 1.25},
-    "TCS.NS": {"name": "Tata Consultancy Services", "price": 3890.50, "change": -0.45},
-    "HDFCBANK.NS": {"name": "HDFC Bank Limited", "price": 1678.25, "change": 0.85},
-    "INFY.NS": {"name": "Infosys Limited", "price": 1534.60, "change": 2.15},
-    "ICICIBANK.NS": {"name": "ICICI Bank Limited", "price": 1245.30, "change": -0.32},
-    "HINDUNILVR.NS": {"name": "Hindustan Unilever", "price": 2567.80, "change": 0.55},
-    "SBIN.NS": {"name": "State Bank of India", "price": 789.45, "change": 1.75},
-    "BHARTIARTL.NS": {"name": "Bharti Airtel Limited", "price": 1456.90, "change": -0.95},
-    "ITC.NS": {"name": "ITC Limited", "price": 467.35, "change": 0.25},
-    "KOTAKBANK.NS": {"name": "Kotak Mahindra Bank", "price": 1834.20, "change": 1.45},
-    "LT.NS": {"name": "Larsen & Toubro", "price": 3456.75, "change": 0.65},
-    "AXISBANK.NS": {"name": "Axis Bank Limited", "price": 1123.40, "change": -0.75},
-    "WIPRO.NS": {"name": "Wipro Limited", "price": 456.80, "change": 1.95},
-    "ASIANPAINT.NS": {"name": "Asian Paints Limited", "price": 2890.15, "change": -0.15},
-    "MARUTI.NS": {"name": "Maruti Suzuki India", "price": 12456.50, "change": 0.45},
-    "TATAMOTORS.NS": {"name": "Tata Motors Limited", "price": 987.65, "change": 2.35},
-    "SUNPHARMA.NS": {"name": "Sun Pharmaceutical", "price": 1678.90, "change": -0.55},
-    "TITAN.NS": {"name": "Titan Company Limited", "price": 3567.25, "change": 1.15},
-    "BAJFINANCE.NS": {"name": "Bajaj Finance Limited", "price": 7234.80, "change": -1.25},
-    "NESTLEIND.NS": {"name": "Nestle India Limited", "price": 24567.45, "change": 0.35},
-    "TATASTEEL.NS": {"name": "Tata Steel Limited", "price": 145.60, "change": 1.85},
-    "POWERGRID.NS": {"name": "Power Grid Corporation", "price": 287.35, "change": 0.95},
-    "NTPC.NS": {"name": "NTPC Limited", "price": 378.90, "change": -0.45},
-    "ONGC.NS": {"name": "Oil & Natural Gas Corp", "price": 267.45, "change": 1.55},
-    "COALINDIA.NS": {"name": "Coal India Limited", "price": 456.70, "change": 0.75},
+    "RELIANCE.NS": {"name": "Reliance Industries Limited", "price": 1377.50, "change": 0.14},
+    "TCS.NS": {"name": "Tata Consultancy Services", "price": 2376.20, "change": 1.43},
+    "HDFCBANK.NS": {"name": "HDFC Bank Limited", "price": 846.00, "change": 2.94},
+    "INFY.NS": {"name": "Infosys Limited", "price": 1098.00, "change": 0.56},
+    "ICICIBANK.NS": {"name": "ICICI Bank Limited", "price": 1640.00, "change": 1.93},
+    "HINDUNILVR.NS": {"name": "Hindustan Unilever", "price": 2052.50, "change": -1.05},
+    "SBIN.NS": {"name": "State Bank of India", "price": 1165.10, "change": 0.79},
+    "BHARTIARTL.NS": {"name": "Bharti Airtel Limited", "price": 2161.70, "change": 0.83},
+    "ITC.NS": {"name": "ITC Limited", "price": 299.10, "change": -0.63},
+    "KOTAKBANK.NS": {"name": "Kotak Mahindra Bank", "price": 515.80, "change": 2.54},
+    "LT.NS": {"name": "Larsen & Toubro", "price": 4209.10, "change": -0.05},
+    "AXISBANK.NS": {"name": "Axis Bank Limited", "price": 1446.00, "change": 4.72},
+    "WIPRO.NS": {"name": "Wipro Limited", "price": 185.70, "change": 0.96},
+    "ASIANPAINT.NS": {"name": "Asian Paints Limited", "price": 2608.30, "change": 0.51},
+    "MARUTI.NS": {"name": "Maruti Suzuki India", "price": 14011.00, "change": 3.11},
+    "TMPV.NS": {"name": "Tata Motors Passenger Vehicles Limited", "price": 266.35, "change": 1.08},
+    "TMCV.NS": {"name": "Tata Motors Limited", "price": 456.75, "change": 2.5},
+    "SUNPHARMA.NS": {"name": "Sun Pharmaceutical", "price": 1884.90, "change": -0.79},
+    "TITAN.NS": {"name": "Titan Company Limited", "price": 4620.00, "change": -1.7},
+    "BAJFINANCE.NS": {"name": "Bajaj Finance Limited", "price": 1122.00, "change": 2.67},
+    "NESTLEIND.NS": {"name": "Nestle India Limited", "price": 1325.00, "change": 1.66},
+    "TATASTEEL.NS": {"name": "Tata Steel Limited", "price": 178.00, "change": -1.6},
+    "POWERGRID.NS": {"name": "Power Grid Corporation", "price": 269.00, "change": 1.7},
+    "NTPC.NS": {"name": "NTPC Limited", "price": 321.50, "change": -1.08},
+    "ONGC.NS": {"name": "Oil & Natural Gas Corp", "price": 223.46, "change": -0.47},
+    "COALINDIA.NS": {"name": "Coal India Limited", "price": 390.00, "change": -0.38},
 }
 
 MOCK_INDICES = {
-    "^NSEI": {"name": "NIFTY 50", "price": 24567.85, "change": 0.45},
-    "^BSESN": {"name": "SENSEX", "price": 81234.50, "change": 0.38},
-    "^NSEBANK": {"name": "NIFTY Bank", "price": 52345.75, "change": -0.25},
+    "^NSEI": {"name": "NIFTY 50", "price": 25800.60, "change": 1.12},
+    "^BSESN": {"name": "SENSEX", "price": 83919.71, "change": 1.08},
+    "^CNXIT": {"name": "NIFTY IT", "price": 31322.65, "change": 1.3},
+    "^NSEBANK": {"name": "NIFTY Bank", "price": 64635.20, "change": 2.49},
 }
 
 
@@ -270,6 +273,29 @@ class MarketDataService:
         """Get current price (cached for CACHE_TTL seconds)"""
         return self._cached(f"price:{symbol}", lambda: self._fetch_current_price(symbol))
     
+    @staticmethod
+    def _yahoo_info(symbol: str) -> Optional[Dict]:
+        """
+        Fetch Yahoo info with price fields taken from fast_info.
+        info['previousClose'] can lag a session for indices (wrong day change),
+        while fast_info matches the daily price history.
+        """
+        ticker = yf.Ticker(symbol)
+        info = dict(ticker.info or {})
+        try:
+            fi = ticker.fast_info
+            last, prev = fi["lastPrice"], fi["previousClose"]
+            if last:
+                info["currentPrice"] = info["regularMarketPrice"] = round(float(last), 2)
+            if prev:
+                info["previousClose"] = info["regularMarketPreviousClose"] = round(float(prev), 2)
+            for src, dst in (("open", "open"), ("dayHigh", "dayHigh"), ("dayLow", "dayLow")):
+                if fi[src]:
+                    info[dst] = round(float(fi[src]), 2)
+        except Exception as e:
+            logger.debug(f"fast_info unavailable for {symbol}: {e}")
+        return info
+
     def _fetch_current_price(self, symbol: str) -> Optional[Dict]:
         """Get current price - tries Groww, then Yahoo (if available), then Mock"""
         
@@ -282,8 +308,7 @@ class MarketDataService:
         # Try Yahoo Finance only if available
         if YFINANCE_AVAILABLE and yf:
             try:
-                ticker = yf.Ticker(symbol)
-                info = ticker.info
+                info = self._yahoo_info(symbol)
                 current_price = info.get('currentPrice') or info.get('regularMarketPrice')
                 
                 if current_price:
@@ -406,8 +431,7 @@ class MarketDataService:
         # Try Yahoo Finance only if available
         if YFINANCE_AVAILABLE and yf:
             try:
-                ticker = yf.Ticker(symbol)
-                info = ticker.info
+                info = self._yahoo_info(symbol)
                 
                 if info and (info.get('regularMarketPrice') or info.get('currentPrice')):
                     return info
