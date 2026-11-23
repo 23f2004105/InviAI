@@ -1,5 +1,5 @@
 # ========================================
-# InviAI Backend Dependencies
+# Envi AI Backend Dependencies
 # ========================================
 
 # Web Framework

@@ -105,10 +105,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 lg:hidden">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">IA</span>
+              <span className="text-white font-bold text-sm">EA</span>
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">
-              InviAI
+              Envi AI
             </span>
           </div>
           <button

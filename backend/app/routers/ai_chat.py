@@ -60,7 +60,7 @@ def get_gemini_model():
 # System Prompt for Investment Advisor
 # ========================================
 
-INVESTMENT_ADVISOR_PROMPT = """You are an intelligent investment advisor AI assistant for InviAI, a portfolio management platform focused on the Indian market.
+INVESTMENT_ADVISOR_PROMPT = """You are an intelligent investment advisor AI assistant for Envi AI, a portfolio management platform focused on the Indian market.
 
 Your role:
 - Help users make informed investment decisions

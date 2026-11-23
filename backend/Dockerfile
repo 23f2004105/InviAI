@@ -1,5 +1,5 @@
 # ========================================
-# InviAI Backend - Multi-stage Dockerfile
+# Envi AI Backend - Multi-stage Dockerfile
 # ========================================
 
 # Base stage with Python 3.11

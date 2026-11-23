@@ -1,4 +1,4 @@
-## AI assistant instructions for InviAI
+## AI assistant instructions for Envi AI
 
 The up-to-date architecture notes, commands and conventions live in [CLAUDE.md](../CLAUDE.md) at the repo root. Read that first; it applies to any AI coding assistant.
 

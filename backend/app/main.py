@@ -1,5 +1,5 @@
 """
-InviAI Backend - Main Application Entry Point
+Envi AI Backend - Main Application Entry Point
 FastAPI application with CORS, middleware, and route configuration
 """
 
@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     Application lifespan events
     """
     # Startup
-    logger.info("Starting InviAI Backend...")
+    logger.info("Starting Envi AI Backend...")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
     
     # Apply database migrations (alembic upgrade head). Single-worker deploys
@@ -78,12 +78,12 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down InviAI Backend...")
+    logger.info("Shutting down Envi AI Backend...")
 
 
 # Initialize FastAPI application
 app = FastAPI(
-    title="InviAI API",
+    title="Envi AI API",
     description="Intelligent Portfolio Planning & Financial Optimization Platform",
     version="0.1.0",
     docs_url="/docs",
@@ -155,7 +155,7 @@ async def root():
     Root endpoint - API information
     """
     return {
-        "name": "InviAI API",
+        "name": "Envi AI API",
         "version": "0.1.0",
         "status": "operational",
         "timestamp": datetime.now(timezone.utc).isoformat(),

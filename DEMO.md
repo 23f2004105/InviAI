@@ -1,4 +1,4 @@
-# InviAI – Presentation Demo Guide
+# Envi AI – Presentation Demo Guide
 
 ## Before you present (10 minutes ahead)
 
@@ -41,7 +41,7 @@ Two portfolios: **Long Term Wealth** (Reliance, TCS, HDFC Bank, Infosys, ITC) an
 
 ## If something goes wrong
 
-- **Chat answers look generic** – the Gemini key is missing/invalid or there's no internet, so InviAI uses its built-in offline advisor (still Indian-market specific). To use Gemini, put a valid key from https://aistudio.google.com in `GEMINI_API_KEY` in `backend/.env` and restart the backend.
+- **Chat answers look generic** – the Gemini key is missing/invalid or there's no internet, so Envi AI uses its built-in offline advisor (still Indian-market specific). To use Gemini, put a valid key from https://aistudio.google.com in `GEMINI_API_KEY` in `backend/.env` and restart the backend.
 - **Prices don't change / look rounded** – Yahoo Finance is unreachable, so built-in sample prices are used. Everything else keeps working.
 - **Backend can't connect to the database** – PostgreSQL isn't running, or `backend/.env` `DATABASE_URL` is wrong.
 - **Backend completely down** – on the login page, *Continue with Demo Mode* shows the UI with sample data.
@@ -53,6 +53,6 @@ Two portfolios: **Long Term Wealth** (Reliance, TCS, HDFC Bank, Infosys, ITC) an
 - Live NSE/BSE quotes (Yahoo Finance → sample-price fallback), cached for 2 minutes and pre-warmed at startup.
 - Portfolio value, cost basis, unrealised P&L and weights recalculated on every change.
 - AI investment advisor (Google Gemini) personalised with the investor profile, with an offline fallback.
-- Read-only by design: InviAI never places trades.
+- Read-only by design: Envi AI never places trades.
 - Security: bcrypt password hashing, rate-limited login, database migrations with Alembic.
 - Next steps: price history from stored snapshots, rebalancing suggestions, broker import.

@@ -1,6 +1,6 @@
-# InviAI
+# Envi AI
 
-Portfolio tracking and planning for the Indian market (NSE/BSE, ₹). Users create portfolios, add holdings, see live prices, dashboards and reports, and chat with a Gemini-powered investment advisor. InviAI is read-only by design: it never places trades.
+Portfolio tracking and planning for the Indian market (NSE/BSE, ₹). Users create portfolios, add holdings, see live prices, dashboards and reports, and chat with a Gemini-powered investment advisor. Envi AI is read-only by design: it never places trades.
 
 ## Stack
 

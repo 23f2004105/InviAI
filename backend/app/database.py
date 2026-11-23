@@ -1,5 +1,5 @@
 """
-InviAI Database Configuration
+Envi AI Database Configuration
 SQLAlchemy setup with connection pooling and session management
 """
 

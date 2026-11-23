@@ -4,7 +4,7 @@ Context for AI assistants working in this repo. Last verified against the code o
 
 ## What this is
 
-**InviAI** is a portfolio tracking / planning app focused on the **Indian market** (NSE/BSE, INR). Users register, create portfolios, add stock holdings, see live-ish prices, dashboards/charts, and chat with a Gemini-powered "investment advisor". Status: alpha prototype.
+**Envi AI** is a portfolio tracking / planning app focused on the **Indian market** (NSE/BSE, INR). Users register, create portfolios, add stock holdings, see live-ish prices, dashboards/charts, and chat with a Gemini-powered "investment advisor". Status: alpha prototype.
 
 Layout (this directory is the git root; the parent `D:\PROJECTS\InviAI\` holds only a stray `.venv/` and `synopsis/`, not part of the app):
 
@@ -25,7 +25,7 @@ uvicorn app.main:app --reload            # http://localhost:8000, docs at /docs;
 pytest tests/                            # in-memory SQLite, Yahoo stubbed, no Postgres needed
 python scripts/check_market_data.py      # live Yahoo Finance smoke check (set PYTHONIOENCODING=utf-8 when piping)
 alembic revision --autogenerate -m "..." # after editing models.py
-python seed_demo.py                      # demo account via the API (INVIAI_API_URL to target a deployed backend)
+python seed_demo.py                      # demo account via the API (ENVIAI_API_URL to target a deployed backend)
 ```
 
 Frontend (from `InviAI-Frontend/`):

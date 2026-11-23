@@ -143,7 +143,7 @@ def main():
     """Run all tests"""
     try:
         print("\n" + "🇮🇳" * 30)
-        print("InviAI - Yahoo Finance Indian Market Data Test")
+        print("Envi AI - Yahoo Finance Indian Market Data Test")
         print("🇮🇳" * 30)
         
         # Show supported stocks

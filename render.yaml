@@ -1,8 +1,8 @@
-# Render Blueprint for the InviAI backend (free tier).
+# Render Blueprint for the Envi AI backend (free tier).
 # Render dashboard -> New -> Blueprint -> pick this repo. See DEPLOYMENT.md.
 services:
   - type: web
-    name: inviai-backend
+    name: enviai-backend
     runtime: python
     plan: free
     rootDir: backend
@@ -20,7 +20,7 @@ services:
         generateValue: true
       - key: DATABASE_URL        # Neon direct connection string, with ?sslmode=require
         sync: false
-      - key: CORS_ORIGINS        # e.g. https://inviai.vercel.app
+      - key: CORS_ORIGINS        # e.g. https://enviai.vercel.app
         sync: false
       - key: GEMINI_API_KEY      # optional; chat falls back to the offline advisor
         sync: false

@@ -2,7 +2,7 @@ services:
   # PostgreSQL Database Service
   db:
     image: postgres:15-alpine
-    container_name: inviai_db
+    container_name: enviai_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - inviai_network
+      - enviai_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
@@ -25,7 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: inviai_backend
+    container_name: enviai_backend
     restart: unless-stopped
     depends_on:
       db:
@@ -42,7 +42,7 @@ services:
       - ./backend:/app
       - /app/venv
     networks:
-      - inviai_network
+      - enviai_network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Next.js Frontend Service
@@ -50,7 +50,7 @@ services:
     build:
       context: ./InviAI-Frontend
       dockerfile: Dockerfile
-    container_name: inviai_frontend
+    container_name: enviai_frontend
     restart: unless-stopped
     depends_on:
       - backend
@@ -65,11 +65,11 @@ services:
       - /app/node_modules
       - /app/.next
     networks:
-      - inviai_network
+      - enviai_network
     command: npm run dev
 
 networks:
-  inviai_network:
+  enviai_network:
     driver: bridge
 
 volumes:

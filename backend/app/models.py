@@ -1,5 +1,5 @@
 """
-InviAI Database Models
+Envi AI Database Models
 SQLAlchemy ORM models for users, portfolios, assets, and transactions
 """
 

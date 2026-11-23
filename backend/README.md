@@ -1,4 +1,4 @@
-# InviAI backend
+# Envi AI backend
 
 FastAPI + SQLAlchemy 2 + PostgreSQL. Setup, tests and deployment are in the root [README](../README.md) and [DEPLOYMENT.md](../DEPLOYMENT.md).
 

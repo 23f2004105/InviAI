@@ -1,5 +1,5 @@
 """
-Basic health check tests for InviAI backend
+Basic health check tests for Envi AI backend
 """
 
 import pytest
@@ -14,7 +14,7 @@ def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "InviAI API"
+    assert data["name"] == "Envi AI API"
     assert "version" in data
     assert data["status"] == "operational"
 

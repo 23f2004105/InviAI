@@ -1,4 +1,4 @@
-// Help & Support Page - FAQ for using InviAI
+// Help & Support Page - FAQ for using Envi AI
 'use client';
 
 import React, { useState } from 'react';
@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     q: 'How do I add stocks to a portfolio?',
-    a: 'On the Portfolios page click "Add Stock" on a portfolio, search for an NSE or BSE company (e.g. RELIANCE, TCS), then enter the number of shares and your average buy price. InviAI fetches the live price and calculates value, weight and returns.',
+    a: 'On the Portfolios page click "Add Stock" on a portfolio, search for an NSE or BSE company (e.g. RELIANCE, TCS), then enter the number of shares and your average buy price. Envi AI fetches the live price and calculates value, weight and returns.',
   },
   {
     q: 'Where do the prices come from?',
@@ -23,8 +23,8 @@ const faqs = [
     a: 'Click the chat bubble at the bottom-right of the dashboard. The advisor answers questions about Indian stocks, mutual funds, SIPs and tax-saving options. Set your risk tolerance, horizon and budget in Settings → Investor Profile to personalise its suggestions.',
   },
   {
-    q: 'Can InviAI buy or sell stocks for me?',
-    a: 'No. InviAI is a read-only planning and tracking tool. It never places orders; you trade through your own broker.',
+    q: 'Can Envi AI buy or sell stocks for me?',
+    a: 'No. Envi AI is a read-only planning and tracking tool. It never places orders; you trade through your own broker.',
   },
   {
     q: 'How do I export my holdings?',
@@ -43,7 +43,7 @@ export default function HelpPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Help & Support</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Answers to common questions about InviAI</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Answers to common questions about Envi AI</p>
       </div>
 
       <Card className="divide-y divide-gray-200 dark:divide-gray-700 p-0">

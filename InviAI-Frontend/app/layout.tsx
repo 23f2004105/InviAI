@@ -98,6 +98,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <title>Envi AI</title>
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <UserProvider>

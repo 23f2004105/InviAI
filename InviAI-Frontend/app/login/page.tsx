@@ -44,7 +44,7 @@ export default function LoginPage() {
             <TrendingUp className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Welcome to InviAI
+            Welcome to Envi AI
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Intelligent Portfolio Planning & Optimization

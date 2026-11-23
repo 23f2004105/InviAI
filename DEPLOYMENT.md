@@ -1,4 +1,4 @@
-# Deploying InviAI (free tier)
+# Deploying Envi AI (free tier)
 
 | Part | Service | Free tier notes |
 |---|---|---|
@@ -31,7 +31,7 @@ The repo must be on GitHub (Render and Vercel deploy from it). Do the steps in t
 3. Environment variables (Production):
    - `NEXT_PUBLIC_API_URL` = `https://<your-service>.onrender.com`
    - `BACKEND_URL` = `https://<your-service>.onrender.com`
-4. Deploy and note the URL, e.g. `https://inviai.vercel.app`.
+4. Deploy and note the URL, e.g. `https://enviai.vercel.app`.
 
 ## 4. Connect them
 
@@ -40,7 +40,7 @@ In Render → your service → **Environment**, set `CORS_ORIGINS` to the Vercel
 ## 5. Check
 
 - Open the Vercel URL, register an account, create a portfolio, add a stock (e.g. `RELIANCE`).
-- Optional: load the demo account: `$env:INVIAI_API_URL="https://<your-service>.onrender.com"; python backend/seed_demo.py`
+- Optional: load the demo account: `$env:ENVIAI_API_URL="https://<your-service>.onrender.com"; python backend/seed_demo.py`
 
 ## Notes
 

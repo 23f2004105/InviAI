@@ -1,8 +1,8 @@
-# 🇮🇳 InviAI - Indian Stock Market Integration Guide
+# 🇮🇳 Envi AI - Indian Stock Market Integration Guide
 
 ## Overview
 
-InviAI now uses **Yahoo Finance** for market data, providing **free access** to Indian stock market data with no API key required!
+Envi AI now uses **Yahoo Finance** for market data, providing **free access** to Indian stock market data with no API key required!
 
 ## Supported Markets
 

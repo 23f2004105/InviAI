@@ -1,4 +1,4 @@
-# InviAI frontend
+# Envi AI frontend
 
 Next.js 15 (App Router), React 19, TypeScript, Tailwind 3, Recharts, lucide-react. Setup and deployment are in the root [README](../README.md) and [DEPLOYMENT.md](../DEPLOYMENT.md).
 

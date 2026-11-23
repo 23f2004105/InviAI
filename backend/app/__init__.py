@@ -1,5 +1,5 @@
 """
-Package initialization for InviAI backend
+Package initialization for Envi AI backend
 """
 
 __version__ = "0.1.0"

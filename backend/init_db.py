@@ -110,7 +110,7 @@ def print_table_info():
 def main():
     """Main initialization function"""
     print("\n" + "=" * 60)
-    print("InviAI Database Initialization")
+    print("Envi AI Database Initialization")
     print("=" * 60 + "\n")
     
     # Test connection

@@ -1,4 +1,4 @@
-// Mock data for InviAI Frontend
+// Mock data for Envi AI Frontend
 // This file contains realistic financial data to simulate a live backend
 
 export interface User {
@@ -42,7 +42,7 @@ export interface HistoricalDataPoint {
 export const mockUser: User = {
   id: 'user-001',
   name: 'Arjun Sharma',
-  email: 'arjun.sharma@inviai.com',
+  email: 'arjun.sharma@enviai.com',
   avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun',
   totalNetWorth: 4025000.00,
   currency: 'INR'
