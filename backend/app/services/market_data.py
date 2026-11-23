@@ -204,7 +204,13 @@ class MarketDataService:
         while fast_info matches the daily price history.
         """
         ticker = yf.Ticker(symbol)
-        info = dict(ticker.info or {})
+        info: Dict = {}
+        try:
+            info = dict(ticker.info or {})
+        except Exception as e:
+            # quoteSummary is often blocked from cloud hosts (Render); the
+            # chart-based fast_info below still works, so carry on with it.
+            logger.info(f"Yahoo info unavailable for {symbol}, using price data only: {e}")
         try:
             fi = ticker.fast_info
             last, prev = fi["lastPrice"], fi["previousClose"]
@@ -215,6 +221,12 @@ class MarketDataService:
             for src, dst in (("open", "open"), ("dayHigh", "dayHigh"), ("dayLow", "dayLow")):
                 if fi[src]:
                     info[dst] = round(float(fi[src]), 2)
+            for src, dst in (("lastVolume", "volume"), ("currency", "currency"), ("exchange", "exchange")):
+                try:
+                    if not info.get(dst) and fi[src]:
+                        info[dst] = fi[src]
+                except Exception:
+                    pass
         except Exception as e:
             logger.debug(f"fast_info unavailable for {symbol}: {e}")
         return info

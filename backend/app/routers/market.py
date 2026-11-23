@@ -38,6 +38,7 @@ class StockQuote(BaseModel):
     fifty_two_week_high: Optional[float] = None
     fifty_two_week_low: Optional[float] = None
     last_updated: datetime
+    is_mock: bool = False   # True when Yahoo was unreachable and sample prices were used
 
 
 class HistoricalDataPoint(BaseModel):
@@ -123,7 +124,8 @@ async def get_stock_quote(symbol: str):
             dividend_yield=data.get('dividendYield'),
             fifty_two_week_high=data.get('fiftyTwoWeekHigh'),
             fifty_two_week_low=data.get('fiftyTwoWeekLow'),
-            last_updated=datetime.now(timezone.utc)
+            last_updated=datetime.now(timezone.utc),
+            is_mock=bool(data.get('is_mock', False)),
         )
     except HTTPException:
         raise
