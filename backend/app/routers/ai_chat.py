@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import os
+import asyncio
 import logging
 
 # Import Gemini AI
@@ -33,6 +34,19 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
     context: Optional[dict] = None  # Can include budget, investment_period, risk_tolerance, etc.
+    history: Optional[List[ChatMessage]] = None  # Earlier turns, oldest first (excluding `message`)
+
+# Only the most recent turns are sent to the model, to bound prompt size
+MAX_HISTORY_TURNS = 12
+MAX_TURN_CHARS = 2000
+
+# Gemini can take 10-20s; past this the offline advisor answers instead of leaving the chat spinning
+GEMINI_TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "30"))
+
+
+async def generate(model, prompt: str):
+    """Run the blocking Gemini call in a worker thread so the event loop (and every other request) keeps running."""
+    return await asyncio.wait_for(asyncio.to_thread(model.generate_content, prompt), timeout=GEMINI_TIMEOUT_SECONDS)
 
 class ChatResponse(BaseModel):
     response: str
@@ -72,7 +86,8 @@ Your role:
 - Keep responses concise, friendly, and professional
 
 Important guidelines:
-- Always ask about budget, investment period, and risk tolerance if not provided
+- Read the whole conversation: details the user gave in earlier messages (budget, investment period, risk tolerance) still apply, so never ask for them again
+- If budget, investment period or risk tolerance is still missing, ask for it once; if the user doesn't answer, give advice anyway using a stated assumption (e.g. moderate risk) instead of repeating the question
 - Suggest diversified portfolios
 - Mention tax implications when relevant (Indian tax laws)
 - Recommend popular Indian stocks like Reliance, TCS, Infosys, HDFC Bank, etc.
@@ -127,6 +142,21 @@ def offline_advice(message: str, context: Optional[dict] = None) -> str:
     return "\n".join(lines)
 
 
+def recent_history(history: Optional[List[ChatMessage]]) -> List[ChatMessage]:
+    """Last MAX_HISTORY_TURNS valid turns, oldest first."""
+    turns = [m for m in (history or []) if m.role in ("user", "assistant") and m.content.strip()]
+    return turns[-MAX_HISTORY_TURNS:]
+
+
+def format_history(history: Optional[List[ChatMessage]]) -> str:
+    """Render earlier turns as a transcript so the model remembers what was already said."""
+    lines = []
+    for m in recent_history(history):
+        speaker = "User" if m.role == "user" else "Assistant"
+        lines.append(f"{speaker}: {m.content[:MAX_TURN_CHARS]}\n")
+    return "Conversation so far:\n" + "\n".join(lines) + "\n" if lines else ""
+
+
 # ========================================
 # Chat Endpoints
 # ========================================
@@ -153,11 +183,14 @@ async def chat_with_ai(
             if request.context.get('risk_tolerance'):
                 context_info += f"\nRisk Tolerance: {request.context['risk_tolerance']}"
         
-        full_prompt = f"{INVESTMENT_ADVISOR_PROMPT}\n\n{context_info}\n\nUser: {request.message}\n\nAssistant:"
+        full_prompt = (
+            f"{INVESTMENT_ADVISOR_PROMPT}\n\n{context_info}\n\n"
+            f"{format_history(request.history)}User: {request.message}\n\nAssistant:"
+        )
         
         # Generate response
-        response = model.generate_content(full_prompt)
-        
+        response = await generate(model, full_prompt)
+
         logger.info(f"AI Chat - User: {current_user.email}, Message: {request.message[:50]}...")
         
         return ChatResponse(
@@ -167,7 +200,9 @@ async def chat_with_ai(
         
     except Exception as e:
         logger.error(f"AI Chat error, using offline advisor: {type(e).__name__}")
-        return ChatResponse(response=offline_advice(request.message, request.context), suggestions=None)
+        # Include earlier user turns so a risk level stated before ("something safe") is honoured
+        earlier = " ".join(m.content for m in recent_history(request.history) if m.role == "user")
+        return ChatResponse(response=offline_advice(f"{earlier} {request.message}", request.context), suggestions=None)
 
 
 @router.post("/quick-advice")
@@ -198,8 +233,8 @@ Please provide:
 Keep it concise and actionable.
 """
         
-        response = model.generate_content(prompt)
-        
+        response = await generate(model, prompt)
+
         return {
             "advice": response.text,
             "budget": budget,

@@ -70,6 +70,9 @@ export const ChatBot: React.FC<ChatBotProps> = ({ isOpen, onClose }) => {
         },
         body: JSON.stringify({
           message: input,
+          // Earlier turns (before this message) so the advisor remembers answers
+          // and doesn't keep re-asking for budget / period / risk
+          history: messages.slice(-12).map(({ role, content }) => ({ role, content })),
           // Investor profile saved on the Settings page personalises the advice
           context: (() => {
             try {
