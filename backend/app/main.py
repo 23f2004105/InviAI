@@ -20,7 +20,7 @@ from app.rate_limit import limiter
 
 # Import routers
 from app.routers import auth_local as auth
-from app.routers import portfolios, assets, transactions, market, ai_chat
+from app.routers import portfolios, assets, transactions, market, ai_chat, optimize
 
 # Configure logging
 logging.basicConfig(
@@ -199,6 +199,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
 app.include_router(assets.router, prefix="/api/portfolios", tags=["Assets"])
 app.include_router(transactions.router, prefix="/api/portfolios", tags=["Transactions"])
+app.include_router(optimize.router, prefix="/api/portfolios", tags=["Optimization"])
 app.include_router(market.router, prefix="/api/market", tags=["Market Data"])
 app.include_router(ai_chat.router, prefix="/api/ai", tags=["AI Chat"])
 
