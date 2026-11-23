@@ -194,8 +194,8 @@ export const mockPortfolios: Portfolio[] = [
       {
         ticker: 'LIQUIDBEES',
         name: 'Nippon India ETF Liquid BeES',
-        quantity: 1540,
-        currentPrice: 100.00,
+        quantity: 154,
+        currentPrice: 1000.00,
         value: 154000.00,
         weight: 24.64,
         changePercent24h: 0.0,

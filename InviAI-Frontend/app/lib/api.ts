@@ -221,9 +221,76 @@ function convertPortfolio(backend: BackendPortfolio, assets: BackendAsset[] = []
   };
 }
 
+// ========================================
+// Demo mode: sample holdings, live Yahoo prices
+// ========================================
+
+const DEMO_CACHE_MS = 2 * 60 * 1000;
+let demoCache: { at: number; data: Portfolio[] } | null = null;
+
+const yahooSymbol = (a: Asset) => (a.assetType === 'crypto' ? `${a.ticker}-INR` : `${a.ticker}.NS`);
+
+async function fetchLiveQuote(symbol: string): Promise<{ price: number; changePercent: number } | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/market/quote/${encodeURIComponent(symbol)}`, { signal: controller.signal });
+    if (!res.ok) return null;
+    const q = await res.json();
+    if (q.is_mock || !(q.current_price > 0)) return null;
+    return { price: q.current_price, changePercent: q.change_percent ?? 0 };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The demo portfolios keep their sample quantities but are valued at live
+// market prices (public /api/market/quote, no login). Any quote that fails
+// keeps its sample price, so demo mode still works offline.
+let demoInFlight: Promise<Portfolio[]> | null = null;
+
+function getLiveDemoPortfolios(): Promise<Portfolio[]> {
+  if (demoCache && Date.now() - demoCache.at < DEMO_CACHE_MS) return Promise.resolve(demoCache.data);
+  // Several components ask at once on page load: share one round of quotes
+  demoInFlight ??= loadLiveDemoPortfolios().finally(() => { demoInFlight = null; });
+  return demoInFlight;
+}
+
+async function loadLiveDemoPortfolios(): Promise<Portfolio[]> {
+
+  const symbols = [...new Set(mockPortfolios.flatMap((p) => p.assets.map(yahooSymbol)))];
+  const quotes = new Map(
+    await Promise.all(symbols.map(async (s) => [s, await fetchLiveQuote(s)] as const))
+  );
+
+  const data = mockPortfolios.map((p) => {
+    const assets = p.assets.map((a) => {
+      const q = quotes.get(yahooSymbol(a));
+      return q ? { ...a, currentPrice: q.price, value: a.quantity * q.price, changePercent24h: q.changePercent } : a;
+    });
+    const totalValue = assets.reduce((s, a) => s + a.value, 0);
+    // value before today's move = value / (1 + change%)
+    const change24h = assets.reduce((s, a) => s + a.value - a.value / (1 + a.changePercent24h / 100), 0);
+    return {
+      ...p,
+      totalValue,
+      change24h,
+      changePercent24h: totalValue - change24h > 0 ? (change24h / (totalValue - change24h)) * 100 : 0,
+      assets: assets.map((a) => ({ ...a, weight: totalValue > 0 ? (a.value / totalValue) * 100 : 0 })),
+    };
+  });
+
+  if (quotes.size > 0 && [...quotes.values()].some(Boolean)) {
+    demoCache = { at: Date.now(), data };
+  }
+  return data;
+}
+
 export const getPortfolios = async (): Promise<Portfolio[]> => {
   if (isDemoSession()) {
-    return mockPortfolios;
+    return getLiveDemoPortfolios();
   }
 
   // Trailing slash matters: without it FastAPI redirects to its own host,
@@ -239,7 +306,7 @@ export const getPortfolios = async (): Promise<Portfolio[]> => {
 
 export const getPortfolioById = async (portfolioId: string): Promise<Portfolio | null> => {
   if (isDemoSession()) {
-    return mockPortfolios.find(p => p.id === portfolioId) || null;
+    return (await getLiveDemoPortfolios()).find(p => p.id === portfolioId) || null;
   }
 
   const id = portfolioId.replace('portfolio-', '');
@@ -342,7 +409,8 @@ export const optimizePortfolio = async (portfolioId: string, risk: RiskProfile):
 
 export const getUser = async (): Promise<User> => {
   if (isDemoSession()) {
-    return mockUser;
+    const portfolios = await getLiveDemoPortfolios();
+    return { ...mockUser, totalNetWorth: portfolios.reduce((s, p) => s + p.totalValue, 0) };
   }
 
   const backendUser = await getCurrentUser();
