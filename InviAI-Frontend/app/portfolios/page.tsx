@@ -10,7 +10,8 @@ import { AddAssetModal } from '@/app/components/dashboard/AddAssetModal';
 import { CreatePortfolioModal } from '@/app/components/dashboard/CreatePortfolioModal';
 import { addAsset, refreshPrices, deletePortfolio } from '@/app/lib/api';
 import { Portfolio } from '@/app/lib/mockData';
-import { TrendingUp, TrendingDown, Plus, RefreshCw, Trash2, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, RefreshCw, Trash2, Briefcase, Sparkles } from 'lucide-react';
+import { OptimizePanel } from '@/app/components/portfolio/OptimizePanel';
 import { Button } from '@/app/components/ui/Button';
 
 export default function PortfoliosPage() {
@@ -18,6 +19,7 @@ export default function PortfoliosPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [addAssetTarget, setAddAssetTarget] = useState<Portfolio | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState<Portfolio | null>(null);
   const [error, setError] = useState('');
 
   const handleAddAsset = async (data: {
@@ -186,6 +188,17 @@ export default function PortfoliosPage() {
                   </Button>
                   <Button
                     size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1"
+                    disabled={isBusy || portfolio.assets.length < 2}
+                    title={portfolio.assets.length < 2 ? 'Add at least 2 stocks to optimize' : undefined}
+                    onClick={() => setOptimizing(portfolio)}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Optimize
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="ghost"
                     className="flex items-center gap-1 ml-auto text-red-600 dark:text-red-400"
                     disabled={isBusy}
@@ -212,6 +225,7 @@ export default function PortfoliosPage() {
         onAdd={handleAddAsset}
         portfolioName={addAssetTarget?.name ?? ''}
       />
+      {optimizing && <OptimizePanel portfolio={optimizing} onClose={() => setOptimizing(null)} />}
     </div>
   );
 }

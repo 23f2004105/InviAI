@@ -295,6 +295,48 @@ export const refreshPrices = async (portfolioId: string): Promise<BackendAsset[]
 };
 
 // ========================================
+// Portfolio optimization (Markowitz mean-variance)
+// ========================================
+
+export type RiskProfile = 'conservative' | 'moderate' | 'aggressive';
+
+export interface OptimizationMetrics {
+  expected_return: number; // annual, fraction
+  volatility: number;      // annual, fraction
+  sharpe: number;
+}
+
+export interface OptimizationHolding {
+  symbol: string;
+  name: string;
+  current_price: number;
+  quantity: number;
+  current_weight: number;   // percent
+  suggested_weight: number; // percent
+  drift: number;            // percentage points, suggested - current
+  action: 'buy' | 'sell' | 'hold';
+  shares: number;
+}
+
+export interface OptimizationResult {
+  risk_profile: RiskProfile;
+  method: string;
+  risk_free_rate: number;
+  days_used: number;
+  uses_sample_data: boolean;
+  metrics: { current: OptimizationMetrics; suggested: OptimizationMetrics; equal_weight: OptimizationMetrics };
+  holdings: OptimizationHolding[];
+}
+
+export const optimizePortfolio = async (portfolioId: string, risk: RiskProfile): Promise<OptimizationResult> => {
+  if (isDemoSession()) {
+    throw new Error('Create an account to optimize a real portfolio.');
+  }
+  const id = portfolioId.replace('portfolio-', '');
+  return apiRequest<OptimizationResult>(`/api/portfolios/${id}/optimize?risk=${risk}`, { method: 'POST' });
+};
+
+// ========================================
 // User API (mock only in demo mode)
 // ========================================
 

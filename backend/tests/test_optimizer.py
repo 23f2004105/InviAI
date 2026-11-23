@@ -86,6 +86,16 @@ def test_near_duplicate_series_still_valid():
         check_valid(optimize_weights(stats, risk), 0.40)
 
 
+def test_moderate_falls_back_to_min_variance_when_all_returns_below_risk_free():
+    # Every stock loses money: max-Sharpe would reward extra volatility, so moderate = min variance
+    stats = build_return_stats(make_closes(specs={
+        "A": (-0.0008, 0.010), "B": (-0.0010, 0.025), "C": (-0.0006, 0.008), "D": (-0.0012, 0.030)}))
+    assert stats.mean.max() < 0.065
+    mod = portfolio_metrics(optimize_weights(stats, "moderate"), stats)
+    cons = portfolio_metrics(optimize_weights(stats, "conservative"), stats)
+    assert abs(mod["volatility"] - cons["volatility"]) < 1e-6
+
+
 def test_unknown_risk_raises():
     stats = build_return_stats(make_closes())
     with pytest.raises(ValueError):

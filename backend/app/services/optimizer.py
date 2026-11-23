@@ -67,6 +67,18 @@ def portfolio_metrics(weights: np.ndarray, stats: ReturnStats) -> dict:
     return {"expected_return": ret, "volatility": vol, "sharpe": float(sharpe)}
 
 
+def _max_return(mu: np.ndarray, cap: float) -> float:
+    """Highest expected return reachable with weights in [0, cap] summing to 1 (greedy fill)."""
+    left, total = 1.0, 0.0
+    for r in sorted(mu, reverse=True):
+        w = min(cap, left)
+        total += w * r
+        left -= w
+        if left <= 0:
+            break
+    return total
+
+
 def optimize_weights(stats: ReturnStats, risk: str) -> np.ndarray:
     """
     conservative -> minimum variance
@@ -82,6 +94,12 @@ def optimize_weights(stats: ReturnStats, risk: str) -> np.ndarray:
     def variance(w):
         return float(w @ cov @ w)
 
+    cap = weight_cap(n)
+    if risk == "moderate" and _max_return(mu, cap) <= RISK_FREE_RATE:
+        # No mix beats the risk-free rate: maximising a negative Sharpe would
+        # reward extra volatility, so fall back to minimum variance.
+        risk = "conservative"
+
     if risk == "conservative":
         objective = variance
     elif risk == "moderate":
@@ -92,7 +110,6 @@ def optimize_weights(stats: ReturnStats, risk: str) -> np.ndarray:
         def objective(w):
             return -(float(mu @ w) - AGGRESSIVE_RISK_AVERSION * variance(w))
 
-    cap = weight_cap(n)
     result = minimize(
         objective,
         x0=np.full(n, 1.0 / n),
