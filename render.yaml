@@ -5,6 +5,7 @@ services:
     name: enviai-backend
     runtime: python
     plan: free
+    region: singapore          # same region as the Neon database
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     # Migrations run on startup (RUN_MIGRATIONS_ON_STARTUP defaults to true).
